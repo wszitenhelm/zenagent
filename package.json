@@ -6,11 +6,18 @@
     "compile": "hardhat compile",
     "test": "hardhat test",
     "deploy:sepolia": "hardhat run scripts/deploy.js --network sepolia",
-    "verify:sepolia": "hardhat verify --network sepolia"
+    "verify:sepolia": "hardhat verify --network sepolia",
+    "ens:create-agent": "tsx scripts/ens/create-agent-subname.ts",
+    "ens:rotate": "tsx scripts/ens/rotate-agent-address.ts",
+    "ens:resolve": "tsx scripts/ens/resolve-agent.ts",
+    "ens:debug": "tsx scripts/ens/debug-name.ts"
   },
   "devDependencies": {
+    "@ensdomains/ensjs": "^4.0.0",
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "dotenv": "^16.4.5",
-    "hardhat": "^2.22.0"
+    "hardhat": "^2.22.0",
+    "tsx": "^4.19.2",
+    "viem": "^2.21.0"
   }
 }
