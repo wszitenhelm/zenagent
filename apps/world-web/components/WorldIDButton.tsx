@@ -1,9 +1,17 @@
 "use client"
 
-import { IDKitWidget, VerificationLevel, type ISuccessResult, type IVerifyResponse } from '@worldcoin/idkit'
+import { IDKitRequestWidget, orbLegacy, type IDKitResult, IDKitErrorCodes } from '@worldcoin/idkit'
 import { useAccount } from 'wagmi'
 import { Button } from '@/components/ui/button'
-import { useState } from 'react'
+import { useState, useCallback, useEffect } from 'react'
+
+type RpContext = {
+  rp_id: string
+  nonce: string
+  created_at: number
+  expires_at: number
+  signature: string
+}
 
 export function WorldIDButton({
   onVerified,
@@ -13,6 +21,8 @@ export function WorldIDButton({
   const { address } = useAccount()
   const [error, setError] = useState<string>('')
   const [busy, setBusy] = useState(false)
+  const [open, setOpen] = useState(false)
+  const [rpContext, setRpContext] = useState<RpContext | null>(null)
 
   const appId = process.env.NEXT_PUBLIC_WORLD_APP_ID
   const rpId = process.env.NEXT_PUBLIC_WORLD_RP_ID
@@ -25,11 +35,35 @@ export function WorldIDButton({
     )
   }
 
-  if (!IDKitWidget) {
-    return <div className="text-xs text-white/60">World ID widget unavailable (check @worldcoin/idkit exports/version).</div>
-  }
+  const fetchRpContext = useCallback(async () => {
+    const res = await fetch('/api/rp-signature', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ action: 'zenagent-checkin' }),
+    })
+    const data = await res.json()
+    if (!data.sig) throw new Error(data.error || 'Failed to get RP signature')
+    return {
+      rp_id: rpId!,
+      nonce: data.nonce,
+      created_at: data.created_at,
+      expires_at: data.expires_at,
+      signature: data.sig,
+    } as RpContext
+  }, [rpId])
 
-  async function handleVerify(result: IVerifyResponse) {
+  const handleOpen = useCallback(async () => {
+    setError('')
+    try {
+      const ctx = await fetchRpContext()
+      setRpContext(ctx)
+      setOpen(true)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to prepare verification')
+    }
+  }, [fetchRpContext])
+
+  const handleVerify = useCallback(async (result: IDKitResult) => {
     setError('')
     setBusy(true)
     try {
@@ -49,37 +83,45 @@ export function WorldIDButton({
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Unknown error'
       setError(msg)
-      throw e
     } finally {
       setBusy(false)
     }
-  }
+  }, [address, onVerified])
 
-  function onSuccess(_result: ISuccessResult) {
-  }
+  const handleSuccess = useCallback((_result: IDKitResult) => {
+    // verification already handled in handleVerify
+  }, [])
+
+  const handleError = useCallback((code: IDKitErrorCodes) => {
+    setError(`World ID error: ${code}`)
+    setOpen(false)
+  }, [])
 
   return (
-    <IDKitWidget
-      app_id={appId as `app_${string}`}
-      action="zenagent-checkin"
-      signal={address || '0x0'}
-      verification_level={VerificationLevel?.Orb ?? 'orb'}
-      handleVerify={handleVerify}
-      onSuccess={onSuccess}
-      {...({ rp_id: rpId } as any)}
-    >
-      {({ open }: { open: () => void }) => (
-        <div className="flex flex-col gap-2">
-          <Button
-            onClick={() => open()}
-            disabled={busy || !address}
-            className="rounded-xl bg-[#c4b5fd] text-[#0f172a] hover:scale-105 hover:bg-[#c4b5fd]/90 disabled:opacity-60"
-          >
-            {busy ? 'Verifying…' : 'Verify World ID'}
-          </Button>
-          {error ? <div className="text-xs text-[#fbbf24]">{error}</div> : null}
-        </div>
-      )}
-    </IDKitWidget>
+    <div className="flex flex-col gap-2">
+      <Button
+        onClick={handleOpen}
+        disabled={busy || !address}
+        className="rounded-xl bg-[#c4b5fd] text-[#0f172a] hover:scale-105 hover:bg-[#c4b5fd]/90 disabled:opacity-60"
+      >
+        {busy ? 'Verifying…' : 'Verify World ID'}
+      </Button>
+      {error ? <div className="text-xs text-[#fbbf24]">{error}</div> : null}
+
+      {rpContext ? (
+        <IDKitRequestWidget
+          app_id={appId as `app_${string}`}
+          action="zenagent-checkin"
+          rp_context={rpContext}
+          allow_legacy_proofs={true}
+          preset={orbLegacy({ signal: address || '0x0' })}
+          open={open}
+          onOpenChange={setOpen}
+          handleVerify={handleVerify}
+          onSuccess={handleSuccess}
+          onError={handleError}
+        />
+      ) : null}
+    </div>
   )
 }

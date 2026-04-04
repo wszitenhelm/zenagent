@@ -7,7 +7,7 @@ type Preset = 180 | 300 | 600
 
 export default function BreathePage() {
   const [preset, setPreset] = useState<Preset>(180)
-  const [secondsLeft, setSecondsLeft] = useState(preset)
+  const [secondsLeft, setSecondsLeft] = useState<number>(preset)
   const [running, setRunning] = useState(false)
 
   useEffect(() => {

@@ -47,11 +47,10 @@ function normalizeToVerifyPayload(input: unknown): VerifyPayload {
   }
 
   if (typeof asAny.protocol_version === 'string' && Array.isArray(asAny.responses)) {
-    const p = asAny as VerifyPayload
-    if (p.responses?.[0] && typeof (p.responses[0] as any).proof !== 'string') {
-      ;(p.responses[0] as any).proof = normalizeProofValue((p.responses[0] as any).proof)
-    }
-    return p
+    // IDKitResult from widget — forward as-is to World verify API.
+    // Add action fallback for v3 results where action is optional.
+    if (!asAny.action) asAny.action = EXPECTED_ACTION
+    return asAny as VerifyPayload
   }
 
   const compact = asAny as WidgetCompactResponse
@@ -101,7 +100,7 @@ export async function POST(request: Request): Promise<Response> {
 
     const idkitResponse = normalizeToVerifyPayload(raw)
 
-    if (idkitResponse.action !== EXPECTED_ACTION) {
+    if (idkitResponse.action && idkitResponse.action !== EXPECTED_ACTION) {
       return NextResponse.json(
         { error: 'Action mismatch', expected: EXPECTED_ACTION, received: idkitResponse.action },
         { status: 400 },

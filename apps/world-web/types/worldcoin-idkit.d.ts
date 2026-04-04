@@ -1,6 +1,3 @@
-declare module '@worldcoin/idkit' {
-  export const IDKitWidget: any
-  export const VerificationLevel: any
-  export type ISuccessResult = any
-  export type IVerifyResponse = any
-}
+// Types are provided by the installed @worldcoin/idkit package.
+// This file is intentionally empty to avoid shadowing real exports.
+export {}
