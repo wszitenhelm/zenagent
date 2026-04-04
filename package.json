@@ -10,13 +10,21 @@
     "ens:create-agent": "tsx scripts/ens/create-agent-subname.ts",
     "ens:rotate": "tsx scripts/ens/rotate-agent-address.ts",
     "ens:resolve": "tsx scripts/ens/resolve-agent.ts",
-    "ens:debug": "tsx scripts/ens/debug-name.ts"
+    "ens:debug": "tsx scripts/ens/debug-name.ts",
+    "agentkit:server": "tsx scripts/agentkit/server.ts",
+    "agentkit:client": "tsx scripts/agentkit/client.ts"
   },
   "devDependencies": {
     "@ensdomains/ensjs": "^4.0.0",
+    "@hono/node-server": "^1.13.0",
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@worldcoin/agentkit": "^0.1.6",
+    "@x402/core": "^2.9.0",
+    "@x402/evm": "^2.9.0",
+    "@x402/hono": "^2.9.0",
     "dotenv": "^16.4.5",
     "hardhat": "^2.22.0",
+    "hono": "^4.6.0",
     "tsx": "^4.19.2",
     "viem": "^2.21.0"
   }
