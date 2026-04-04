@@ -68,6 +68,17 @@ function base64Json(obj: unknown): string {
   return Buffer.from(JSON.stringify(obj), 'utf8').toString('base64')
 }
 
+function parsePaymentRequiredHeader(res: Response): any {
+  const header = res.headers.get('payment-required')
+  if (!header) return null
+  try {
+    const json = Buffer.from(header, 'base64').toString('utf8')
+    return JSON.parse(json)
+  } catch {
+    return null
+  }
+}
+
 async function main() {
   const baseUrl = process.env.AGENTKIT_BASE_URL || 'http://localhost:4021'
   const user = process.env.AGENTKIT_USER
@@ -86,7 +97,18 @@ async function main() {
     throw new Error(`Expected 402 challenge. Got ${first.status}: ${text}`)
   }
 
-  const challenge = (await first.json()) as any
+  let challenge: any = null
+  try {
+    challenge = (await first.json()) as any
+  } catch {
+    challenge = null
+  }
+
+  if (!challenge?.extensions?.agentkit) {
+    const fromHeader = parsePaymentRequiredHeader(first)
+    if (fromHeader) challenge = fromHeader
+  }
+
   const agentkit: AgentkitExtension | undefined = challenge?.extensions?.agentkit
   if (!agentkit) throw new Error('Missing extensions.agentkit in 402 response')
 

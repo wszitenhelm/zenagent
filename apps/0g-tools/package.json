@@ -1,0 +1,17 @@
+{
+  "name": "zenagent-0g-tools",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "journal:upload": "tsx scripts/journal-upload.ts",
+    "journal:download": "tsx scripts/journal-download.ts",
+    "compute:quotes": "tsx scripts/compute-quotes.ts"
+  },
+  "dependencies": {
+    "@0gfoundation/0g-ts-sdk": "1.2.1",
+    "@0glabs/0g-serving-broker": "0.7.4",
+    "dotenv": "16.4.5",
+    "ethers": "6.13.1",
+    "tsx": "4.19.2"
+  }
+}

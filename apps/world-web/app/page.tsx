@@ -1,188 +1,91 @@
 "use client";
 
-import { useState } from 'react'
-import { IDKit, orbLegacy } from '@worldcoin/idkit-core'
-import type { IDKitResult } from '@worldcoin/idkit-core'
-import { QRCodeSVG } from 'qrcode.react'
-
-const ACTION = 'zenagent-checkin'
+import { useRouter } from 'next/navigation'
+import { useAccount, useConnect } from 'wagmi'
+import { Button } from '@/components/ui/button'
 
 export default function Home() {
-  const [walletAddress, setWalletAddress] = useState('')
-  const [username, setUsername] = useState('')
-  const [status, setStatus] = useState<string>('')
-  const [lastTx, setLastTx] = useState<string>('')
-  const [connectorURI, setConnectorURI] = useState<string>('')
-
-  async function register() {
-    try {
-      setStatus('Registering user onchain...')
-      setLastTx('')
-
-      if (!walletAddress) throw new Error('Missing wallet address')
-      if (!username) throw new Error('Missing username')
-
-      const res = await fetch('/api/registry/register', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ walletAddress, username }),
-      }).then((r) => r.json())
-
-      if (!res?.success) throw new Error(res?.error || 'Registration failed')
-      setLastTx(res.txHash || '')
-      setStatus('Registered ✅ Now run World ID verification.')
-    } catch (e) {
-      const message = e instanceof Error ? e.message : 'Unknown error'
-      setStatus(`Error: ${message}`)
-    }
-  }
-
-  async function verify() {
-    try {
-      setStatus('Requesting RP signature...')
-      setLastTx('')
-      setConnectorURI('')
-
-      const app_id = process.env.NEXT_PUBLIC_WORLD_APP_ID
-      const rp_id = process.env.NEXT_PUBLIC_WORLD_RP_ID
-      const environment = (process.env.NEXT_PUBLIC_WORLD_ENVIRONMENT || 'staging') as 'staging' | 'production'
-
-      if (!app_id) throw new Error('Missing NEXT_PUBLIC_WORLD_APP_ID')
-      if (!rp_id) throw new Error('Missing NEXT_PUBLIC_WORLD_RP_ID')
-      if (!walletAddress) throw new Error('Missing wallet address')
-
-      const rpSig = await fetch('/api/rp-signature', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ action: ACTION }),
-      }).then((r) => r.json())
-
-      setStatus('Opening World ID...')
-      const request = await IDKit.request({
-        app_id: app_id as `app_${string}`,
-        action: ACTION,
-        rp_context: {
-          rp_id,
-          nonce: rpSig.nonce,
-          created_at: rpSig.created_at,
-          expires_at: rpSig.expires_at,
-          signature: rpSig.sig,
-        },
-        allow_legacy_proofs: true,
-        environment,
-      }).preset(
-        orbLegacy({
-          signal: walletAddress,
-        }),
-      )
-
-      setConnectorURI(request.connectorURI)
-      setStatus('Open the World ID link (below) in World App / simulator, then come back here...')
-
-      const completion = await request.pollUntilCompletion()
-      const idkitResponse: IDKitResult = (completion as any)?.result ?? completion
-
-      setStatus('Verifying proof + writing onchain...')
-      const res = await fetch('/api/world/verify', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ walletAddress, idkitResponse }),
-      }).then((r) => r.json())
-
-      if (!res?.success) throw new Error(res?.error || 'Verification failed')
-      setLastTx(res.txHash || '')
-      setStatus('Verified and stored onchain ✅')
-    } catch (e) {
-      const message = e instanceof Error ? e.message : 'Unknown error'
-      setStatus(`Error: ${message}`)
-    }
-  }
+  const { isConnected } = useAccount()
+  const { connect, connectors, isPending } = useConnect()
+  const router = useRouter()
 
   return (
-    <main style={{ maxWidth: 720, margin: '0 auto', padding: 24, fontFamily: 'system-ui' }}>
-      <h1 style={{ fontSize: 28, marginBottom: 8 }}>ZenAgent — World ID Verification</h1>
-      <p style={{ marginTop: 0 }}>
-        This verifies a World ID proof server-side, then stores the verified nullifier onchain in ZenAgentRegistry (Sepolia).
-      </p>
+    <main className="relative mx-auto flex min-h-[calc(100vh-72px)] max-w-6xl flex-col justify-center px-6 py-16">
+      <div className="absolute inset-0 -z-10 opacity-60">
+        <div className="absolute left-1/2 top-1/3 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#c4b5fd]/10 blur-3xl" />
+      </div>
 
-      <label style={{ display: 'block', marginTop: 16, marginBottom: 8 }}>Wallet address (the user you are verifying)</label>
-      <input
-        value={walletAddress}
-        onChange={(e) => setWalletAddress(e.target.value)}
-        placeholder="0x..."
-        style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #ccc' }}
-      />
-
-      <label style={{ display: 'block', marginTop: 16, marginBottom: 8 }}>Username (required by contract before World ID verify)</label>
-      <input
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-        placeholder="wikusia"
-        style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #ccc' }}
-      />
-
-      <button
-        onClick={register}
-        style={{ marginTop: 16, padding: '10px 14px', borderRadius: 10, border: '1px solid #111', cursor: 'pointer' }}
-      >
-        1) Register user
-      </button>
-
-      <button
-        onClick={verify}
-        style={{ marginTop: 16, padding: '10px 14px', borderRadius: 10, border: '1px solid #111', cursor: 'pointer' }}
-      >
-        2) Verify with World ID
-      </button>
-
-      {connectorURI ? (
-        <div style={{ marginTop: 16 }}>
-          <div style={{ fontWeight: 600, marginBottom: 8 }}>World ID link</div>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-            <button
-              onClick={() => window.open(connectorURI, '_blank', 'noopener,noreferrer')}
-              style={{ padding: '8px 10px', borderRadius: 10, border: '1px solid #111', cursor: 'pointer' }}
-            >
-              Open
-            </button>
-            <button
-              onClick={async () => {
-                await navigator.clipboard.writeText(connectorURI)
-              }}
-              style={{ padding: '8px 10px', borderRadius: 10, border: '1px solid #111', cursor: 'pointer' }}
-            >
-              Copy
-            </button>
+      <div className="grid items-center gap-10 md:grid-cols-2">
+        <div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/80">
+            <span>🔐 World ID Verified</span>
+            <span className="text-white/40">•</span>
+            <span>🧠 AI-Powered</span>
+            <span className="text-white/40">•</span>
+            <span>⛓ Onchain</span>
           </div>
-          <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', background: '#f6f6f6', padding: 12, borderRadius: 10 }}>
-            {connectorURI}
-          </pre>
 
-          <div style={{ marginTop: 12, display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-            <div style={{ background: '#fff', padding: 10, borderRadius: 12, border: '1px solid #ddd' }}>
-              <QRCodeSVG value={connectorURI} size={180} />
+          <h1 className="mt-5 text-4xl font-semibold tracking-tight text-white md:text-5xl">
+            Your AI Wellness Companion
+          </h1>
+          <p className="mt-4 max-w-xl text-base text-white/70">
+            Proof of human. Private by design. Yours forever.
+          </p>
+
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            {isConnected ? (
+              <Button
+                className="rounded-xl bg-[#c4b5fd] text-[#0f172a] hover:scale-105 hover:bg-[#c4b5fd]/90"
+                onClick={() => router.push('/onboarding')}
+              >
+                Start Your Journey
+              </Button>
+            ) : (
+              <Button
+                className="rounded-xl bg-[#c4b5fd] text-[#0f172a] hover:scale-105 hover:bg-[#c4b5fd]/90"
+                onClick={() => connect({ connector: connectors[0] })}
+                disabled={isPending || connectors.length === 0}
+              >
+                Start Your Journey
+              </Button>
+            )}
+
+            <Button
+              variant="outline"
+              className="rounded-xl bg-white/5 text-white/90 hover:scale-105 hover:bg-white/10"
+              onClick={() => router.push('/dashboard')}
+            >
+              View Dashboard
+            </Button>
+          </div>
+
+          <div className="mt-10 grid gap-4 md:grid-cols-3">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
+              <div className="text-sm font-medium text-white">World</div>
+              <div className="mt-1 text-xs text-white/60">World ID + AgentKit</div>
             </div>
-            <div style={{ flex: 1, minWidth: 260 }}>
-              <div style={{ fontWeight: 600, marginBottom: 6 }}>If the app opens but nothing happens</div>
-              <div style={{ marginBottom: 6 }}>
-                Use the simulator to complete the session (recommended for staging):
-              </div>
-              <div style={{ marginBottom: 6 }}>
-                1) Open https://simulator.worldcoin.org/
-              </div>
-              <div style={{ marginBottom: 6 }}>
-                2) Paste the link above (or scan the QR) when prompted
-              </div>
-              <div>3) Complete the flow, then return here and wait for the tx hash</div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
+              <div className="text-sm font-medium text-white">ENS</div>
+              <div className="mt-1 text-xs text-white/60">Agent subnames + records</div>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
+              <div className="text-sm font-medium text-white">0G</div>
+              <div className="mt-1 text-xs text-white/60">Encrypted storage + compute</div>
+            </div>
+          </div>
+
+          <div className="mt-10 text-xs text-white/50">Built at ETHGlobal Cannes 2026</div>
+        </div>
+
+        <div className="flex items-center justify-center">
+          <div className="relative">
+            <div className="h-[280px] w-[280px] rounded-full bg-[#c4b5fd]/15 blur-2xl" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="zen-breathe h-[220px] w-[220px] rounded-full border border-[#c4b5fd]/40 bg-[#c4b5fd]/10" />
             </div>
           </div>
         </div>
-      ) : null}
-
-      {status ? <pre style={{ marginTop: 16, whiteSpace: 'pre-wrap' }}>{status}</pre> : null}
-      {lastTx ? (
-        <pre style={{ marginTop: 8, whiteSpace: 'pre-wrap' }}>txHash: {lastTx}</pre>
-      ) : null}
+      </div>
     </main>
   )
 }
