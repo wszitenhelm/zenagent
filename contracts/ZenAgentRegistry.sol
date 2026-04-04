@@ -19,6 +19,7 @@ contract ZenAgentRegistry {
 
     mapping(address => string) private _usernameOf;
     mapping(address => uint256) private _registeredAt;
+    mapping(address => uint256) private _registeredBlock;
     mapping(bytes32 => address) private _usernameHashToUser;
 
     mapping(address => bytes32) private _worldIdNullifierOf;
@@ -29,6 +30,7 @@ contract ZenAgentRegistry {
     mapping(address => uint256) private _lastCheckInAt;
     mapping(address => uint256) private _totalCheckIns;
     mapping(address => uint256) private _streak;
+    mapping(address => string) private _lastGratitude;
 
     mapping(address => address) private _referrerOf;
     mapping(address => uint256) private _referralCount;
@@ -41,12 +43,13 @@ contract ZenAgentRegistry {
 
         _usernameOf[msg.sender] = username;
         _registeredAt[msg.sender] = block.timestamp;
+        _registeredBlock[msg.sender] = block.number;
         _usernameHashToUser[usernameHash] = msg.sender;
 
         emit UserRegistered(msg.sender, username, block.timestamp);
     }
 
-    function logCheckIn(uint8 mood, uint8 stress, uint8 sleep, string memory) external {
+    function logCheckIn(uint8 mood, uint8 stress, uint8 sleep, string memory gratitude) external {
         require(_registeredAt[msg.sender] != 0, 'Not registered');
         require(_worldIdNullifierOf[msg.sender] != bytes32(0), 'World ID not verified');
         require(mood >= 1 && mood <= 10, 'Mood out of range');
@@ -64,6 +67,7 @@ contract ZenAgentRegistry {
 
         _lastCheckInAt[msg.sender] = block.timestamp;
         _totalCheckIns[msg.sender] = _totalCheckIns[msg.sender] + 1;
+        _lastGratitude[msg.sender] = gratitude;
 
         emit CheckInLogged(msg.sender, mood, stress, sleep, block.timestamp, _streak[msg.sender]);
     }
@@ -104,7 +108,7 @@ contract ZenAgentRegistry {
     function setReferrer(address referrer) external {
         require(_registeredAt[msg.sender] != 0, 'Not registered');
         require(_referrerOf[msg.sender] == address(0), 'Referrer already set');
-        require(_totalCheckIns[msg.sender] == 0, 'Too late to set referrer');
+        require(block.number == _registeredBlock[msg.sender], 'Referrer must be set at registration');
         require(referrer != address(0), 'Invalid referrer');
         require(referrer != msg.sender, 'Self referral');
 
