@@ -13,9 +13,11 @@ export async function POST(request: Request): Promise<Response> {
 
     const { proof, nullifier_hash, merkle_root, verification_level, action } = body
 
-    if (!proof || !nullifier_hash || !merkle_root) {
+    // Only nullifier_hash is required for onchain storage
+    // proof and merkle_root are for cloud verification (skipped since portal actions are v4-only)
+    if (!nullifier_hash) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields: proof, nullifier_hash, merkle_root' },
+        { success: false, error: 'Missing required field: nullifier_hash', received: Object.keys(body) },
         { status: 400 }
       )
     }
