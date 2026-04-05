@@ -4,7 +4,16 @@ import { IDKitWidget, VerificationLevel } from '@worldcoin/idkit'
 import type { ISuccessResult } from '@worldcoin/idkit'
 import { useAccount } from 'wagmi'
 import { Button } from '@/components/ui/button'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+
+// Suppress Radix DialogTitle warning from IDKitWidget (internal, can't fix)
+if (typeof window !== 'undefined') {
+  const origError = console.error
+  console.error = (...args: any[]) => {
+    if (typeof args[0] === 'string' && args[0].includes('DialogContent') && args[0].includes('DialogTitle')) return
+    origError.apply(console, args)
+  }
+}
 
 export function WorldIDButton({
   onVerified,
@@ -38,7 +47,9 @@ export function WorldIDButton({
       }).then((r) => r.json())
 
       if (!res?.success) {
-        throw new Error(res?.error || 'Verification failed')
+        const detail = res?.details ? JSON.stringify(res.details) : ''
+        const debug = res?.debug ? JSON.stringify(res.debug) : ''
+        throw new Error(`${res?.error || 'Verification failed'} | ${detail} | ${debug}`)
       }
 
       onVerified?.({ txHash: res.txHash })

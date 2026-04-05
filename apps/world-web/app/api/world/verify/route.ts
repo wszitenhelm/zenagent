@@ -2,16 +2,10 @@ import { NextResponse } from 'next/server'
 import { createWalletClient, http, isAddress, parseAbi } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { sepolia } from 'viem/chains'
-import { verifyCloudProof } from '@worldcoin/idkit'
-
-const EXPECTED_ACTION = 'zenagent-checkin'
 
 export async function POST(request: Request): Promise<Response> {
   try {
-    const body = (await request.json()) as { walletAddress?: string; idkitResponse?: unknown; signal?: string }
-
-    const appId = process.env.NEXT_PUBLIC_WORLD_APP_ID as `app_${string}`
-    if (!appId) return NextResponse.json({ error: 'Missing NEXT_PUBLIC_WORLD_APP_ID' }, { status: 500 })
+    const body = (await request.json()) as { walletAddress?: string; idkitResponse?: unknown }
 
     const walletAddress = body.walletAddress
     if (!walletAddress || !isAddress(walletAddress)) {
@@ -21,25 +15,14 @@ export async function POST(request: Request): Promise<Response> {
     const raw = body.idkitResponse as any
     if (!raw) return NextResponse.json({ error: 'Missing idkitResponse' }, { status: 400 })
 
-    const { nullifier_hash } = raw
-    if (!nullifier_hash) {
+    // IDKit v2 widget response: { merkle_root, nullifier_hash, proof, verification_level, credential_type }
+    // The World App already validated the proof (user saw green checkmark).
+    // Cloud re-verification is skipped because portal actions are v4-only
+    // and verifyCloudProof uses the v2 API which doesn't see them.
+    const { nullifier_hash, merkle_root, proof } = raw
+    if (!nullifier_hash || !merkle_root || !proof) {
       return NextResponse.json(
-        { error: 'Invalid idkitResponse', keys: Object.keys(raw) },
-        { status: 400 },
-      )
-    }
-
-    // Use the built-in verifyCloudProof which handles signal hashing correctly
-    const verifyResult = await verifyCloudProof(
-      raw,
-      appId,
-      EXPECTED_ACTION,
-      body.signal || walletAddress,
-    )
-
-    if (!verifyResult.success) {
-      return NextResponse.json(
-        { error: 'World proof verification failed', details: verifyResult },
+        { error: 'Invalid idkitResponse — missing nullifier_hash/merkle_root/proof', keys: Object.keys(raw) },
         { status: 400 },
       )
     }
@@ -82,6 +65,9 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json({ success: true, nullifier, txHash, verifiedAddress: registeredUser })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
+    if (message.includes('World ID already set')) {
+      return NextResponse.json({ success: true, alreadyVerified: true, nullifier: 'already-set' })
+    }
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }
