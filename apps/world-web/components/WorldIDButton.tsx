@@ -51,44 +51,27 @@ export function WorldIDButton({
     try {
       if (!address) throw new Error('Connect wallet first')
 
-      // Step 1: POST to /api/verify-world-id
-      const verifyRes = await fetch('/api/verify-world-id', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          proof: result.proof,
-          nullifier_hash: result.nullifier_hash,
-          merkle_root: result.merkle_root,
-          verification_level: result.verification_level,
-          action: 'zenagent-checkin',
-        }),
-      }).then((r) => r.json())
-
-      if (!verifyRes?.success) {
-        throw new Error(verifyRes?.error || 'Verification failed')
-      }
-
-      // Step 2: Call setWorldIDVerified on contract via backend
-      const onchainRes = await fetch('/api/world/verify', {
+      // Call backend to verify and store onchain
+      const res = await fetch('/api/world/verify', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ 
           walletAddress: address, 
-          idkitResponse: { nullifier_hash: result.nullifier_hash }
+          idkitResponse: result 
         }),
       }).then((r) => r.json())
 
-      if (!onchainRes?.success && !onchainRes?.alreadyVerified) {
-        throw new Error(onchainRes?.error || 'Onchain verification failed')
+      if (!res?.success && !res?.alreadyVerified) {
+        throw new Error(res?.error || 'Verification failed')
       }
 
-      // Step 3: Store in localStorage
+      // Store in localStorage
       localStorage.setItem('worldid_verified', 'true')
       localStorage.setItem('worldid_nullifier', result.nullifier_hash)
       localStorage.setItem('worldid_verified_at', Date.now().toString())
 
       setVerified(true)
-      onVerified?.({ txHash: onchainRes.txHash, nullifierHash: result.nullifier_hash })
+      onVerified?.({ txHash: res.txHash, nullifierHash: result.nullifier_hash })
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Unknown error'
       setError(msg)
