@@ -34,34 +34,36 @@ export default function ProfilePage() {
     }
   }, [])
 
+  // Refresh data when page loads or becomes visible
   useEffect(() => {
-    let mounted = true
-    async function run() {
+    const loadData = async () => {
       if (!address) return
-      const p = await getUserProfile(address)
-      const b = await getBadges(address)
-      const r = await getReferralCount(address)
-      if (!mounted) return
-      setProfile({
-        username: p[0],
-        streak: p[1],
-        totalCheckIns: p[2],
-        registeredAt: p[3],
-        worldIDVerified: p[4],
-        ensName: p[5],
-      })
-      setBadges({ sevenDay: b[0], thirtyDay: b[1], ninetyDay: b[2] })
-      setReferrals(r)
+      try {
+        const p = await getUserProfile(address)
+        const b = await getBadges(address)
+        const r = await getReferralCount(address)
+        setProfile({
+          username: p[0],
+          streak: p[1],
+          totalCheckIns: p[2],
+          registeredAt: p[3],
+          worldIDVerified: p[4],
+          ensName: p[5],
+        })
+        setBadges({ sevenDay: b[0], thirtyDay: b[1], ninetyDay: b[2] })
+        setReferrals(r)
+      } catch (e) {
+        console.error('Failed to load profile:', e)
+      }
     }
-    run().catch(() => {
-      if (!mounted) return
-      setProfile(null)
-      setBadges(null)
-      setReferrals(null)
-    })
-    return () => {
-      mounted = false
+    loadData()
+    
+    // Refresh when tab becomes visible
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') loadData()
     }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
   }, [address])
 
   const level = profile ? getLevelFromStreak(Number(profile.streak)) : 'Seedling 🌱'

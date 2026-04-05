@@ -2,12 +2,31 @@
 
 import { useRouter } from 'next/navigation'
 import { useAccount, useConnect } from 'wagmi'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 
 export default function Home() {
   const { isConnected } = useAccount()
   const { connect, connectors, isPending } = useConnect()
   const router = useRouter()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => setMounted(true), [])
+
+  const handleStart = async () => {
+    if (connectors.length === 0) {
+      alert('Please install MetaMask or another wallet')
+      return
+    }
+    try {
+      await connect({ connector: connectors[0] })
+    } catch (e) {
+      console.error('Connection failed:', e)
+      alert('Could not connect wallet. Is it unlocked?')
+    }
+  }
+
+  if (!mounted) return null
 
   return (
     <main className="relative mx-auto flex min-h-[calc(100vh-72px)] max-w-6xl flex-col justify-center px-6 py-16">
@@ -43,10 +62,10 @@ export default function Home() {
             ) : (
               <Button
                 className="rounded-xl bg-[#c4b5fd] text-[#0f172a] hover:scale-105 hover:bg-[#c4b5fd]/90"
-                onClick={() => connect({ connector: connectors[0] })}
-                disabled={isPending || connectors.length === 0}
+                onClick={handleStart}
+                disabled={isPending}
               >
-                Start Your Journey
+                {isPending ? 'Connecting...' : 'Start Your Journey'}
               </Button>
             )}
 
@@ -79,9 +98,22 @@ export default function Home() {
 
         <div className="flex items-center justify-center">
           <div className="relative">
-            <div className="h-[280px] w-[280px] rounded-full bg-[#c4b5fd]/15 blur-2xl" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="zen-breathe h-[220px] w-[220px] rounded-full border border-[#c4b5fd]/40 bg-[#c4b5fd]/10" />
+            {/* Outer glow */}
+            <div className="absolute inset-0 h-[280px] w-[280px] rounded-full bg-[#c4b5fd]/20 animate-pulse blur-2xl" />
+            {/* Breathing circle */}
+            <div className="zen-hero-breathe h-[240px] w-[240px] rounded-full border-2 border-[#c4b5fd]/50 bg-gradient-to-br from-[#c4b5fd]/20 to-[#6ee7b7]/10 flex items-center justify-center shadow-2xl shadow-[#c4b5fd]/20">
+              <div className="text-center">
+                <div className="text-4xl mb-2">🧘</div>
+                <div className="text-sm text-white/60">Breathe in</div>
+                <div className="text-xs text-white/40 mt-1">4-4-4-4</div>
+              </div>
+            </div>
+            {/* Orbiting dots */}
+            <div className="absolute inset-0 animate-spin" style={{ animationDuration: '8s' }}>
+              <div className="absolute top-0 left-1/2 h-3 w-3 -translate-x-1/2 rounded-full bg-[#c4b5fd]" />
+            </div>
+            <div className="absolute inset-0 animate-spin" style={{ animationDuration: '12s', animationDirection: 'reverse' }}>
+              <div className="absolute bottom-0 left-1/2 h-2 w-2 -translate-x-1/2 rounded-full bg-[#6ee7b7]" />
             </div>
           </div>
         </div>
