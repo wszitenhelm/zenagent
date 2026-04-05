@@ -3,7 +3,7 @@
 import { useMemo, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { useAccount, useWalletClient } from 'wagmi'
+import { useAccount, useWriteContract } from 'wagmi'
 import { ZENAGENT_REGISTRY_ADDRESS, zenAgentRegistryAbi, getUserProfile } from '@/lib/contract'
 import { generateManifestation } from '@/lib/manifestation'
 
@@ -34,7 +34,7 @@ async function encryptJournal(plaintext: string, address: string) {
 
 export default function CheckinPage() {
   const { address, isConnected } = useAccount()
-  const { data: walletClient } = useWalletClient()
+  const { writeContractAsync } = useWriteContract()
   const [step, setStep] = useState(1)
   const [mood, setMood] = useState(7)
   const [stress, setStress] = useState(5)
@@ -45,6 +45,7 @@ export default function CheckinPage() {
   const [submitting, setSubmitting] = useState(false)
   const [uploadedRootHash, setUploadedRootHash] = useState<string>('')
   const [quote, setQuote] = useState<string>('')
+  const [error, setError] = useState<string>('')
   const [isVerified, setIsVerified] = useState(false)
   const [streak, setStreak] = useState(0)
 
@@ -78,44 +79,57 @@ export default function CheckinPage() {
   }
 
   async function submit() {
-    if (!address) {
+    if (!address || !isConnected) {
       setStep(6)
       setQuote('Connect wallet to submit a check-in.')
-      return
-    }
-    if (!walletClient) {
-      setStep(6)
-      setQuote('Wallet client unavailable. Please reconnect wallet.')
       return
     }
 
     setSubmitting(true)
     try {
+      // Step 1: Encrypt and upload to 0G (with timeout)
+      console.log('[checkin] Encrypting journal...')
       const enc = await encryptJournal(journal || '(empty)', address)
+      
+      console.log('[checkin] Uploading to 0G...')
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 30000) // 30s timeout
+      
       const up = await fetch('/api/0g/upload-journal', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ ciphertextBase64: enc.ciphertextBase64, contentType: 'application/octet-stream' }),
+        signal: controller.signal,
       }).then((r) => r.json())
+      clearTimeout(timeout)
 
       if (!up?.success) throw new Error(up?.error || '0G upload failed')
+      console.log('[checkin] 0G upload success:', up.rootHash)
       setUploadedRootHash(up.rootHash)
 
-      await walletClient.writeContract({
+      // Step 2: Write to contract
+      console.log('[checkin] Writing to contract...')
+      await writeContractAsync({
         address: ZENAGENT_REGISTRY_ADDRESS,
         abi: zenAgentRegistryAbi,
         functionName: 'logCheckIn',
         args: [mood, stress, sleep, gratitude],
       })
+      console.log('[checkin] Contract write success')
 
-      // Generate manifestation using 0G Compute with personalized prompt
+      // Step 3: Generate manifestation
+      console.log('[checkin] Generating manifestation...')
       const manifesto = await generateManifestation(mood, stress, journal, streak)
       setQuote(manifesto)
+      setError('')
+      console.log('[checkin] Done!')
 
       setStep(6)
     } catch (e) {
+      console.error('[checkin] Error:', e)
       const msg = e instanceof Error ? e.message : 'Unknown error'
-      setQuote(`Error: ${msg}`)
+      setError(msg)
+      setQuote('')
       setStep(6)
     } finally {
       setSubmitting(false)
@@ -243,10 +257,21 @@ export default function CheckinPage() {
             <div>
               <div className="text-sm font-medium text-white">Confirmation</div>
               <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+                {error ? (
+                  <div className="rounded-xl border border-[#fbbf24]/30 bg-[#fbbf24]/10 p-3 mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[#fbbf24]">⚠️</span>
+                      <span className="text-sm font-medium text-[#fbbf24]">Error</span>
+                    </div>
+                    <div className="mt-1 text-sm text-[#fbbf24] break-words">{error}</div>
+                  </div>
+                ) : null}
                 <div className="text-sm text-white/80">Streak: {streak}🔥</div>
-                <div className="mt-2 text-sm text-white/80">Quote: "{quote || 'Consistency is your superpower.'}"</div>
+                {quote ? (
+                  <div className="mt-2 text-sm text-white/80">Quote: "{quote}"</div>
+                ) : null}
                 <div className="mt-2 text-xs text-white/60">Badge earned: 7day🌱</div>
-                {uploadedRootHash ? (
+                {uploadedRootHash && !error ? (
                   <div className="mt-3 rounded-xl border border-[#22c55e]/30 bg-[#22c55e]/10 p-3">
                     <div className="flex items-center gap-2">
                       <span className="text-[#22c55e]">✓</span>
