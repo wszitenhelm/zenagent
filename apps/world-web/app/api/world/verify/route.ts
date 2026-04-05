@@ -156,14 +156,17 @@ export async function POST(request: Request): Promise<Response> {
 
     const abi = parseAbi(['function setWorldIDVerified(address user, bytes32 nullifierHash) external'])
 
+    // Use the backend signer address (which is registered onchain) for the contract call
+    const registeredUser = walletAddress && isAddress(walletAddress) ? walletAddress : account.address
+
     const txHash = await client.writeContract({
       address: registryAddress,
       abi,
       functionName: 'setWorldIDVerified',
-      args: [walletAddress, nullifier],
+      args: [registeredUser, nullifier],
     })
 
-    return NextResponse.json({ success: true, nullifier, txHash })
+    return NextResponse.json({ success: true, nullifier, txHash, verifiedAddress: registeredUser })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     return NextResponse.json({ error: message }, { status: 500 })

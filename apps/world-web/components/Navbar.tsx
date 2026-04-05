@@ -3,11 +3,14 @@
 import Link from 'next/link'
 import { useAccount, useConnect, useDisconnect } from 'wagmi'
 import { Button } from '@/components/ui/button'
+import { useState, useEffect } from 'react'
 
 export function Navbar() {
   const { address, isConnected } = useAccount()
   const { connect, connectors, isPending } = useConnect()
   const { disconnect } = useDisconnect()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
 
   return (
     <div className="sticky top-0 z-50 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
@@ -36,7 +39,9 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center gap-3">
-          {isConnected ? (
+          {!mounted ? (
+            <span className="text-xs text-white/40">Loading…</span>
+          ) : isConnected ? (
             <div className="flex items-center gap-3">
               <div className="hidden rounded-xl bg-white/5 px-3 py-2 text-xs text-white/80 md:block">
                 {address?.slice(0, 6)}…{address?.slice(-4)}
