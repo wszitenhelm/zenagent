@@ -30,11 +30,11 @@ export default function Home() {
 
   return (
     <main className="relative mx-auto flex min-h-[calc(100vh-72px)] max-w-6xl flex-col justify-center px-6 py-16">
-      <div className="absolute inset-0 -z-10 opacity-60">
+      <div className="pointer-events-none absolute inset-0 -z-10 opacity-60">
         <div className="absolute left-1/2 top-1/3 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#c4b5fd]/10 blur-3xl" />
       </div>
 
-      <div className="grid items-center gap-10 md:grid-cols-2">
+      <div className="relative z-10 grid items-center gap-10 md:grid-cols-2">
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/80">
             <span>🔐 World ID Verified</span>
@@ -96,7 +96,7 @@ export default function Home() {
           <div className="mt-10 text-xs text-white/50">Built at ETHGlobal Cannes 2026</div>
         </div>
 
-        <div className="flex items-center justify-center">
+        <div className="pointer-events-none flex items-center justify-center">
           <div className="relative">
             {/* Outer glow */}
             <div className="absolute inset-0 h-[280px] w-[280px] rounded-full bg-[#c4b5fd]/20 animate-pulse blur-2xl" />

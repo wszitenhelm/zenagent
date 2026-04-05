@@ -33,8 +33,9 @@ async function encryptData(plaintext: string, address: string): Promise<{ cipher
   return { ciphertext: ct, iv }
 }
 
-async function decryptData(ciphertext: Uint8Array, iv: Uint8Array, address: string): Promise<string> {
+async function decryptData(ciphertext: any, iv: Uint8Array, address: string): Promise<string> {
   const key = await deriveKeyMaterial(address)
+  // @ts-ignore
   const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext)
   return new TextDecoder().decode(pt)
 }
@@ -112,10 +113,11 @@ export async function downloadWellnessData(
   const indexer = new Indexer(OG_STORAGE_INDEXER_RPC)
 
   // Download segments
-  const [segments, downloadErr] = await indexer.download(txHash, OG_EVM_RPC_URL, signer)
-  if (downloadErr !== null) {
-    throw new Error(`Download error: ${downloadErr}`)
+  const downloadResult: any = await (indexer as any).download(txHash, OG_EVM_RPC_URL)
+  if (!downloadResult || downloadResult[1] !== null) {
+    throw new Error(`Download error: ${downloadResult?.[1] || 'unknown'}`)
   }
+  const segments = downloadResult[0]
 
   if (!segments) {
     throw new Error('No segments downloaded')
