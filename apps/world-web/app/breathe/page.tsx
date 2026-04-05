@@ -85,6 +85,14 @@ export default function BreathePage() {
         background: 'linear-gradient(135deg, #6ee7b7 0%, #34d399 100%)'
       }
     }
+    if (currentPhase.name === 'Hold' && phaseIndex === 3) {
+      return { 
+        ...base, 
+        width: 200, 
+        height: 200,
+        background: 'linear-gradient(135deg, #c4b5fd 0%, #a78bfa 100%)'
+      }
+    }
     if (currentPhase.name === 'Exhale') {
       return { 
         ...base, 
