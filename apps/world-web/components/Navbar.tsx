@@ -50,13 +50,22 @@ export function Navbar() {
               </Button>
             </div>
           ) : (
-            <Button
-              className="rounded-xl bg-[#c4b5fd] text-[#0f172a] hover:scale-105 hover:bg-[#c4b5fd]/90"
-              onClick={() => connect({ connector: connectors[0] })}
-              disabled={isPending || connectors.length === 0}
-            >
-              Connect Wallet
-            </Button>
+            <div className="flex items-center gap-2">
+              {connectors.length > 0 ? (
+                connectors.slice(0, 3).map((connector) => (
+                  <Button
+                    key={connector.uid}
+                    className="rounded-xl bg-[#c4b5fd] text-[#0f172a] text-xs hover:scale-105 hover:bg-[#c4b5fd]/90"
+                    onClick={() => connect({ connector })}
+                    disabled={isPending}
+                  >
+                    {connector.name}
+                  </Button>
+                ))
+              ) : (
+                <span className="text-xs text-white/50">No wallet detected</span>
+              )}
+            </div>
           )}
         </div>
       </div>

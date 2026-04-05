@@ -28,16 +28,6 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     const account = privateKeyToAccount(pk.startsWith('0x') ? (pk as `0x${string}`) : (`0x${pk}` as `0x${string}`))
-    if (account.address.toLowerCase() !== walletAddress.toLowerCase()) {
-      return NextResponse.json(
-        {
-          error: 'walletAddress must match the backend signer address (PRIVATE_KEY)',
-          signer: account.address,
-          walletAddress,
-        },
-        { status: 400 },
-      )
-    }
 
     const client = createWalletClient({
       account,
