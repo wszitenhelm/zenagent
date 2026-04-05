@@ -51,16 +51,17 @@ export function WorldIDButton({
   }
 
   return (
-    <IDKitWidget
-      app_id={appId as `app_${string}`}
-      action="zenagent-checkin"
-      signal={address || '0x0'}
-      verification_level={VerificationLevel.Orb}
-      handleVerify={handleVerify}
-      onSuccess={() => {}}
-    >
-      {({ open }: { open: () => void }) => (
-        <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2">
+      <IDKitWidget
+        app_id={appId as `app_${string}`}
+        action="zenagent-checkin"
+        signal={address || '0x0'}
+        verification_level={VerificationLevel.Orb}
+        handleVerify={handleVerify}
+        onSuccess={() => {}}
+        aria-label="World ID Verification"
+      >
+        {({ open }: { open: () => void }) => (
           <Button
             onClick={() => open()}
             disabled={busy || !address}
@@ -68,9 +69,9 @@ export function WorldIDButton({
           >
             {busy ? 'Verifying…' : 'Verify World ID'}
           </Button>
-          {error ? <div className="text-xs text-[#fbbf24]">{error}</div> : null}
-        </div>
-      )}
-    </IDKitWidget>
+        )}
+      </IDKitWidget>
+      {error ? <div className="text-xs text-[#fbbf24]">{error}</div> : null}
+    </div>
   )
 }

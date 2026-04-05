@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { WorldIDButton } from '@/components/WorldIDButton'
 import { useAccount } from 'wagmi'
 
@@ -9,6 +9,8 @@ export default function OnboardingPage() {
   const [status, setStatus] = useState<string>('')
   const [lastTx, setLastTx] = useState<string>('')
   const [verified, setVerified] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
 
   return (
     <main className="mx-auto w-full max-w-3xl px-6 py-10">
@@ -19,11 +21,15 @@ export default function OnboardingPage() {
         </p>
 
         <div className="mt-6 grid gap-4">
-          {!address && (
+          {!mounted && (
+            <div className="text-sm text-white/60">Loading…</div>
+          )}
+
+          {mounted && !address && (
             <div className="text-sm text-white/60">Connect your wallet (top-right) to get started.</div>
           )}
 
-          {address && !verified && (
+          {mounted && address && !verified && (
             <div className="rounded-xl border border-white/10 bg-white/5 p-4">
               <div className="mb-1 text-sm font-medium text-white">Connected: {address.slice(0, 6)}…{address.slice(-4)}</div>
               <div className="mb-3 text-xs text-white/60">Click below to verify with World ID.</div>
