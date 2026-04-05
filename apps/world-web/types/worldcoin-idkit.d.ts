@@ -8,4 +8,12 @@ declare module '@worldcoin/idkit' {
     proof: string
     verification_level: string
   }
+  export function verifyCloudProof(
+    proof: ISuccessResult,
+    app_id: `app_${string}`,
+    action: string,
+    signal?: string,
+    endpoint?: string,
+    headers?: Record<string, string>,
+  ): Promise<{ success: boolean; [key: string]: any }>
 }

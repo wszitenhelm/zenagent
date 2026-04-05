@@ -34,7 +34,7 @@ export function WorldIDButton({
       const res = await fetch('/api/world/verify', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ walletAddress: address, idkitResponse: result }),
+        body: JSON.stringify({ walletAddress: address, idkitResponse: result, signal: address }),
       }).then((r) => r.json())
 
       if (!res?.success) {

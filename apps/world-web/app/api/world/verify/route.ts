@@ -2,14 +2,15 @@ import { NextResponse } from 'next/server'
 import { createWalletClient, http, isAddress, parseAbi } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { sepolia } from 'viem/chains'
+import { verifyCloudProof } from '@worldcoin/idkit'
 
 const EXPECTED_ACTION = 'zenagent-checkin'
 
 export async function POST(request: Request): Promise<Response> {
   try {
-    const body = (await request.json()) as { walletAddress?: string; idkitResponse?: unknown }
+    const body = (await request.json()) as { walletAddress?: string; idkitResponse?: unknown; signal?: string }
 
-    const appId = process.env.NEXT_PUBLIC_WORLD_APP_ID
+    const appId = process.env.NEXT_PUBLIC_WORLD_APP_ID as `app_${string}`
     if (!appId) return NextResponse.json({ error: 'Missing NEXT_PUBLIC_WORLD_APP_ID' }, { status: 500 })
 
     const walletAddress = body.walletAddress
@@ -20,34 +21,25 @@ export async function POST(request: Request): Promise<Response> {
     const raw = body.idkitResponse as any
     if (!raw) return NextResponse.json({ error: 'Missing idkitResponse' }, { status: 400 })
 
-    // IDKit v2 returns: { merkle_root, nullifier_hash, proof, verification_level, credential_type }
-    const { merkle_root, nullifier_hash, proof } = raw
-    if (!merkle_root || !nullifier_hash || !proof) {
+    const { nullifier_hash } = raw
+    if (!nullifier_hash) {
       return NextResponse.json(
         { error: 'Invalid idkitResponse', keys: Object.keys(raw) },
         { status: 400 },
       )
     }
 
-    // Verify with World v2 API
-    const verifyBody = {
-      merkle_root,
-      nullifier_hash,
-      proof,
-      action: EXPECTED_ACTION,
-      signal_hash: raw.signal_hash || undefined,
-    }
+    // Use the built-in verifyCloudProof which handles signal hashing correctly
+    const verifyResult = await verifyCloudProof(
+      raw,
+      appId,
+      EXPECTED_ACTION,
+      body.signal || walletAddress,
+    )
 
-    const verifyRes = await fetch(`https://developer.worldcoin.org/api/v2/verify/${appId}`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(verifyBody),
-    })
-
-    if (!verifyRes.ok) {
-      const text = await verifyRes.text().catch(() => '')
+    if (!verifyResult.success) {
       return NextResponse.json(
-        { error: 'World proof verification failed', status: verifyRes.status, details: text },
+        { error: 'World proof verification failed', details: verifyResult },
         { status: 400 },
       )
     }
