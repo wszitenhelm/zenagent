@@ -4,7 +4,8 @@ import { useMemo, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { useAccount, useWalletClient } from 'wagmi'
-import { ZENAGENT_REGISTRY_ADDRESS, zenAgentRegistryAbi } from '@/lib/contract'
+import { ZENAGENT_REGISTRY_ADDRESS, zenAgentRegistryAbi, getUserProfile } from '@/lib/contract'
+import { generateManifestation } from '@/lib/manifestation'
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n))
@@ -45,14 +46,20 @@ export default function CheckinPage() {
   const [uploadedRootHash, setUploadedRootHash] = useState<string>('')
   const [quote, setQuote] = useState<string>('')
   const [isVerified, setIsVerified] = useState(false)
+  const [streak, setStreak] = useState(0)
 
-  // Check World ID verification status
+  // Check World ID verification status and streak
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const verified = localStorage.getItem('worldid_verified')
       setIsVerified(!!verified)
     }
-  }, [])
+    if (address) {
+      getUserProfile(address).then((p) => {
+        setStreak(Number(p[1])) // streak is at index 1
+      }).catch(() => setStreak(0))
+    }
+  }, [address])
 
   const stressColor = useMemo(() => {
     const t = (clamp(stress, 1, 10) - 1) / 9
@@ -101,14 +108,9 @@ export default function CheckinPage() {
         args: [mood, stress, sleep, gratitude],
       })
 
-      const mf = await fetch('/api/0g/manifestation', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ prompt: 'Generate 1 short manifestation quote about calm, health, and consistency.' }),
-      }).then((r) => r.json())
-
-      if (mf?.success && mf.quote) setQuote(mf.quote)
-      else setQuote('Consistency is your superpower.')
+      // Generate manifestation using 0G Compute with personalized prompt
+      const manifesto = await generateManifestation(mood, stress, journal, streak)
+      setQuote(manifesto)
 
       setStep(6)
     } catch (e) {
@@ -241,11 +243,17 @@ export default function CheckinPage() {
             <div>
               <div className="text-sm font-medium text-white">Confirmation</div>
               <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-4">
-                <div className="text-sm text-white/80">Streak: 8🔥</div>
-                <div className="mt-2 text-sm text-white/80">Quote: “{quote || 'Consistency is your superpower.'}”</div>
+                <div className="text-sm text-white/80">Streak: {streak}🔥</div>
+                <div className="mt-2 text-sm text-white/80">Quote: "{quote || 'Consistency is your superpower.'}"</div>
                 <div className="mt-2 text-xs text-white/60">Badge earned: 7day🌱</div>
                 {uploadedRootHash ? (
-                  <div className="mt-2 text-xs text-white/60">0G journal rootHash: {uploadedRootHash}</div>
+                  <div className="mt-3 rounded-xl border border-[#22c55e]/30 bg-[#22c55e]/10 p-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[#22c55e]">✓</span>
+                      <span className="text-xs font-medium text-[#22c55e]">Saved to 0G Network</span>
+                    </div>
+                    <div className="mt-1 text-xs text-white/60 break-all">tx: {uploadedRootHash}</div>
+                  </div>
                 ) : null}
               </div>
             </div>
@@ -280,6 +288,20 @@ export default function CheckinPage() {
               New Check-in
             </Button>
           )}
+        </div>
+
+        {/* Powered by 0G Badge */}
+        <div className="mt-6 flex items-center justify-center gap-2 text-xs text-white/40">
+          <span>Powered by</span>
+          <a 
+            href="https://0g.ai" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 rounded-lg bg-white/5 px-2 py-1 hover:bg-white/10 transition-colors"
+          >
+            <span className="font-semibold text-white/60">0G</span>
+            <span className="text-[10px]">Storage + Compute</span>
+          </a>
         </div>
       </div>
     </main>
