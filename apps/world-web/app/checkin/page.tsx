@@ -93,15 +93,24 @@ export default function CheckinPage() {
       const rootHash = 'demo-tx-hash'
       setUploadedRootHash(rootHash)
 
-      // Step 2: Write to contract
-      console.log('[checkin] Writing to contract...')
-      await writeContractAsync({
-        address: ZENAGENT_REGISTRY_ADDRESS,
-        abi: zenAgentRegistryAbi,
-        functionName: 'logCheckIn',
-        args: [mood, stress, sleep, gratitude],
-      })
-      console.log('[checkin] Contract write success')
+      // Step 2: Submit check-in via backend (avoids wallet popup hanging)
+      console.log('[checkin] Submitting check-in via backend...')
+      const checkinRes = await fetch('/api/checkin/submit', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          walletAddress: address,
+          mood,
+          stress,
+          sleep,
+          gratitude,
+        }),
+      }).then((r) => r.json())
+
+      if (!checkinRes?.success) {
+        throw new Error(checkinRes?.error || 'Check-in submission failed')
+      }
+      console.log('[checkin] Check-in success:', checkinRes.txHash)
 
       // Step 3: Generate manifestation
       console.log('[checkin] Generating manifestation...')

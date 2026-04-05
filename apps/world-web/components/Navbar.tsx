@@ -11,14 +11,17 @@ export function Navbar() {
   const { disconnect } = useDisconnect()
   const [mounted, setMounted] = useState(false)
   const [isVerified, setIsVerified] = useState(false)
+  const [ensName, setEnsName] = useState<string | null>(null)
   
   useEffect(() => setMounted(true), [])
   
-  // Check World ID verification status
+  // Check World ID verification status and ENS name
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const verified = localStorage.getItem('worldid_verified')
       setIsVerified(!!verified)
+      const storedEns = localStorage.getItem('ens_name')
+      setEnsName(storedEns)
     }
   }, [isConnected])
 
@@ -61,6 +64,15 @@ export function Navbar() {
                 >
                   <span className="text-[#22c55e]">🛡️</span>
                   <span className="text-xs text-[#22c55e]">Human Verified</span>
+                </div>
+              )}
+              {/* ENS Name Display */}
+              {ensName && (
+                <div className="hidden md:flex items-center gap-1 rounded-xl border border-[#c4b5fd]/30 bg-[#c4b5fd]/10 px-2 py-1">
+                  <svg viewBox="0 0 24 24" className="h-4 w-4 text-[#c4b5fd]" fill="currentColor">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                  </svg>
+                  <span className="text-xs text-[#c4b5fd]">{ensName}</span>
                 </div>
               )}
               <div className="hidden rounded-xl bg-white/5 px-3 py-2 text-xs text-white/80 md:block">
