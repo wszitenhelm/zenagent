@@ -36,7 +36,7 @@ export async function POST(request: Request): Promise<Response> {
       success: true, 
       nullifierHash: nullifier_hash,
       verificationLevel: verification_level || 'orb',
-      action: action || 'zenagent-verify'
+      action: action || 'zenagent-checkin'
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'

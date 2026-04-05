@@ -69,7 +69,7 @@ export async function POST(request: Request): Promise<Response> {
     const hooks = createAgentkitHooks({
       app_id: appId,
       mode: 'free-trial',
-      action: 'zenagent-verify',
+      action: 'zenagent-checkin',
     })
 
     // Check verification status

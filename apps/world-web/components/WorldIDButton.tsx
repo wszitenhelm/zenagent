@@ -60,7 +60,7 @@ export function WorldIDButton({
           nullifier_hash: result.nullifier_hash,
           merkle_root: result.merkle_root,
           verification_level: result.verification_level,
-          action: 'zenagent-verify',
+          action: 'zenagent-checkin',
         }),
       }).then((r) => r.json())
 
@@ -110,7 +110,7 @@ export function WorldIDButton({
     <div className="flex flex-col gap-2">
       <IDKitWidget
         app_id={appId as `app_${string}`}
-        action="zenagent-verify"
+        action="zenagent-checkin"
         signal={address || '0x0'}
         verification_level={VerificationLevel.Orb}
         onSuccess={handleSuccess}
