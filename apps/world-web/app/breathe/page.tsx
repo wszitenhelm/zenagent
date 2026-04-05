@@ -59,6 +59,10 @@ export default function BreathePage() {
   }, [cycles, targetCycles, isActive])
 
   const currentPhase = PHASES[phaseIndex]
+  
+  // Debug: log current phase
+  console.log('[Breathe] Phase:', phaseIndex, currentPhase.name, 'timeLeft:', timeLeft)
+  
   const progress = ((cycles + (4 - timeLeft) / 4) / targetCycles) * 100
 
   // Circle animation styles
