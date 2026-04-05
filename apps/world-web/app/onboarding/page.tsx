@@ -57,20 +57,26 @@ export default function OnboardingPage() {
   const register = async () => {
     if (!address || !username) return
     setStatus('Registering...')
+    console.log('[onboarding] Starting registration...')
     try {
       // Register user in contract
+      console.log('[onboarding] Calling /api/registry/register...')
       const registerRes = await fetch('/api/registry/register', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ walletAddress: address, username }),
       }).then((r) => r.json())
+      console.log('[onboarding] Register response:', registerRes)
 
-      if (!registerRes?.success) {
+      // If already registered, that's fine - continue to ENS
+      if (!registerRes?.success && !registerRes?.error?.includes('Already registered')) {
         throw new Error(registerRes?.error || 'Registration failed')
       }
 
       // Mint ENS subname
+      console.log('[onboarding] Calling mintSubname...')
       const ensRes = await mintSubname(username, address, {} as any)
+      console.log('[onboarding] ENS response:', ensRes)
       setEnsName(ensRes.ensName)
       
       // Store in localStorage
@@ -82,8 +88,10 @@ export default function OnboardingPage() {
       setStatus('Registration complete! ✅')
       setStep(3)
     } catch (e) {
+      console.error('[onboarding] Registration error:', e)
       const msg = e instanceof Error ? e.message : 'Registration failed'
       setStatus(`Error: ${msg}`)
+      alert(`Registration failed: ${msg}`)
     }
   }
 
