@@ -33,7 +33,7 @@ async function encryptJournal(plaintext: string, address: string) {
 }
 
 export default function CheckinPage() {
-  const { address } = useAccount()
+  const { address, isConnected } = useAccount()
   const { data: walletClient } = useWalletClient()
   const [step, setStep] = useState(1)
   const [mood, setMood] = useState(7)
@@ -278,10 +278,10 @@ export default function CheckinPage() {
             <Button
               className="rounded-xl bg-[#6ee7b7] text-[#0f172a] hover:scale-105 hover:bg-[#6ee7b7]/90 disabled:opacity-50"
               onClick={submit}
-              disabled={submitting || !isVerified || !walletClient}
-              title={!isVerified ? 'World ID verification required' : !walletClient ? 'Connect wallet first' : ''}
+              disabled={submitting || !isVerified || !isConnected}
+              title={!isVerified ? 'World ID verification required' : !isConnected ? 'Connect wallet first' : ''}
             >
-              {submitting ? 'Submitting…' : !walletClient ? 'Connect Wallet' : 'Submit'}
+              {submitting ? 'Submitting…' : !isConnected ? 'Connect Wallet' : 'Submit'}
             </Button>
           ) : (
             <Button className="rounded-xl bg-[#c4b5fd] text-[#0f172a] hover:scale-105 hover:bg-[#c4b5fd]/90" onClick={() => setStep(1)}>
