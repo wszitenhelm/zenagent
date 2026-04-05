@@ -10,7 +10,17 @@ export function Navbar() {
   const { connect, connectors, isPending } = useConnect()
   const { disconnect } = useDisconnect()
   const [mounted, setMounted] = useState(false)
+  const [isVerified, setIsVerified] = useState(false)
+  
   useEffect(() => setMounted(true), [])
+  
+  // Check World ID verification status
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const verified = localStorage.getItem('worldid_verified')
+      setIsVerified(!!verified)
+    }
+  }, [isConnected])
 
   return (
     <div className="sticky top-0 z-50 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">
@@ -43,6 +53,16 @@ export function Navbar() {
             <span className="text-xs text-white/40">Loading…</span>
           ) : isConnected ? (
             <div className="flex items-center gap-3">
+              {/* Human Verified Shield */}
+              {isVerified && (
+                <div 
+                  className="hidden md:flex items-center gap-1 rounded-xl border border-[#22c55e]/30 bg-[#22c55e]/10 px-2 py-1"
+                  title="Verified without revealing identity"
+                >
+                  <span className="text-[#22c55e]">🛡️</span>
+                  <span className="text-xs text-[#22c55e]">Human Verified</span>
+                </div>
+              )}
               <div className="hidden rounded-xl bg-white/5 px-3 py-2 text-xs text-white/80 md:block">
                 {address?.slice(0, 6)}…{address?.slice(-4)}
               </div>

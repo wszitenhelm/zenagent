@@ -1,6 +1,7 @@
 "use client"
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { useAccount, useWalletClient } from 'wagmi'
 import { ZENAGENT_REGISTRY_ADDRESS, zenAgentRegistryAbi } from '@/lib/contract'
@@ -43,6 +44,15 @@ export default function CheckinPage() {
   const [submitting, setSubmitting] = useState(false)
   const [uploadedRootHash, setUploadedRootHash] = useState<string>('')
   const [quote, setQuote] = useState<string>('')
+  const [isVerified, setIsVerified] = useState(false)
+
+  // Check World ID verification status
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const verified = localStorage.getItem('worldid_verified')
+      setIsVerified(!!verified)
+    }
+  }, [])
 
   const stressColor = useMemo(() => {
     const t = (clamp(stress, 1, 10) - 1) / 9
@@ -122,6 +132,22 @@ export default function CheckinPage() {
         </div>
 
         <div className="mt-6">
+          {/* Verification Gate Banner */}
+          {!isVerified && (
+            <div className="mb-6 rounded-xl border border-[#fbbf24]/30 bg-[#fbbf24]/10 p-4">
+              <div className="flex items-center gap-2">
+                <span className="text-[#fbbf24]">⚠️</span>
+                <span className="text-sm font-medium text-[#fbbf24]">Verify your humanity first</span>
+              </div>
+              <p className="mt-1 text-xs text-white/70">
+                World ID verification is required to submit check-ins.{' '}
+                <Link href="/onboarding" className="underline text-[#c4b5fd]">
+                  Go to onboarding →
+                </Link>
+              </p>
+            </div>
+          )}
+
           {step === 1 ? (
             <div>
               <div className="text-sm font-medium text-white">Mood</div>
@@ -242,11 +268,12 @@ export default function CheckinPage() {
             </Button>
           ) : step === 5 ? (
             <Button
-              className="rounded-xl bg-[#6ee7b7] text-[#0f172a] hover:scale-105 hover:bg-[#6ee7b7]/90"
+              className="rounded-xl bg-[#6ee7b7] text-[#0f172a] hover:scale-105 hover:bg-[#6ee7b7]/90 disabled:opacity-50"
               onClick={submit}
-              disabled={submitting}
+              disabled={submitting || !isVerified}
+              title={!isVerified ? 'World ID verification required' : ''}
             >
-              Submit
+              {submitting ? 'Submitting…' : 'Submit'}
             </Button>
           ) : (
             <Button className="rounded-xl bg-[#c4b5fd] text-[#0f172a] hover:scale-105 hover:bg-[#c4b5fd]/90" onClick={() => setStep(1)}>

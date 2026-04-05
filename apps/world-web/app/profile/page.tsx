@@ -6,6 +6,7 @@ import { getBadges, getReferralCount, getUserProfile } from '@/lib/contract'
 
 export default function ProfilePage() {
   const { address } = useAccount()
+  const [nullifierHash, setNullifierHash] = useState<string | null>(null)
 
   const [profile, setProfile] = useState<{
     username: string
@@ -17,6 +18,16 @@ export default function ProfilePage() {
   } | null>(null)
   const [badges, setBadges] = useState<{ sevenDay: boolean; thirtyDay: boolean; ninetyDay: boolean } | null>(null)
   const [referrals, setReferrals] = useState<bigint | null>(null)
+
+  // Load nullifier from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('worldid_nullifier')
+      if (stored) {
+        setNullifierHash(stored)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     let mounted = true
@@ -55,10 +66,22 @@ export default function ProfilePage() {
         <div className="mt-1 text-2xl font-semibold text-white">{address ? (profile?.ensName || 'agent-1.zenagent.eth') : 'Connect wallet'}</div>
 
         {address ? (
-          <div
-            className={`mt-4 inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs ${profile?.worldIDVerified ? 'text-[#6ee7b7]' : 'text-[#fbbf24]'}`}
-          >
-            World ID {profile?.worldIDVerified ? 'verified' : 'not verified'}
+          <div className="mt-4 flex flex-col gap-2">
+            <div
+              className={`inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs ${profile?.worldIDVerified ? 'text-[#6ee7b7]' : 'text-[#fbbf24]'}`}
+            >
+              World ID {profile?.worldIDVerified ? 'verified' : 'not verified'}
+            </div>
+            {/* Nullifier Hash Display */}
+            {nullifierHash && (
+              <div 
+                className="inline-flex items-center gap-2 rounded-full border border-[#22c55e]/30 bg-[#22c55e]/10 px-3 py-1 text-xs text-[#22c55e] cursor-help"
+                title="Verified without revealing identity"
+              >
+                <span>Nullifier:</span>
+                <span className="font-mono">{nullifierHash.slice(0, 10)}…{nullifierHash.slice(-6)}</span>
+              </div>
+            )}
           </div>
         ) : null}
 

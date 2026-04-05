@@ -18,13 +18,24 @@ if (typeof window !== 'undefined') {
 export function WorldIDButton({
   onVerified,
 }: {
-  onVerified?: (payload: { txHash?: string }) => void
+  onVerified?: (payload: { txHash?: string; nullifierHash?: string }) => void
 }) {
   const { address } = useAccount()
   const [error, setError] = useState<string>('')
   const [busy, setBusy] = useState(false)
+  const [verified, setVerified] = useState(false)
 
   const appId = process.env.NEXT_PUBLIC_WORLD_APP_ID
+
+  // Check localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('worldid_verified')
+      if (stored) {
+        setVerified(true)
+      }
+    }
+  }, [])
 
   if (!appId) {
     return (
@@ -34,25 +45,50 @@ export function WorldIDButton({
     )
   }
 
-  async function handleVerify(result: ISuccessResult) {
+  async function handleSuccess(result: ISuccessResult) {
     setError('')
     setBusy(true)
     try {
       if (!address) throw new Error('Connect wallet first')
 
-      const res = await fetch('/api/world/verify', {
+      // Step 1: POST to /api/verify-world-id
+      const verifyRes = await fetch('/api/verify-world-id', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ walletAddress: address, idkitResponse: result, signal: address }),
+        body: JSON.stringify({
+          proof: result.proof,
+          nullifier_hash: result.nullifier_hash,
+          merkle_root: result.merkle_root,
+          verification_level: result.verification_level,
+          action: 'zenagent-verify',
+        }),
       }).then((r) => r.json())
 
-      if (!res?.success) {
-        const detail = res?.details ? JSON.stringify(res.details) : ''
-        const debug = res?.debug ? JSON.stringify(res.debug) : ''
-        throw new Error(`${res?.error || 'Verification failed'} | ${detail} | ${debug}`)
+      if (!verifyRes?.success) {
+        throw new Error(verifyRes?.error || 'Verification failed')
       }
 
-      onVerified?.({ txHash: res.txHash })
+      // Step 2: Call setWorldIDVerified on contract via backend
+      const onchainRes = await fetch('/api/world/verify', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ 
+          walletAddress: address, 
+          idkitResponse: { nullifier_hash: result.nullifier_hash }
+        }),
+      }).then((r) => r.json())
+
+      if (!onchainRes?.success && !onchainRes?.alreadyVerified) {
+        throw new Error(onchainRes?.error || 'Onchain verification failed')
+      }
+
+      // Step 3: Store in localStorage
+      localStorage.setItem('worldid_verified', 'true')
+      localStorage.setItem('worldid_nullifier', result.nullifier_hash)
+      localStorage.setItem('worldid_verified_at', Date.now().toString())
+
+      setVerified(true)
+      onVerified?.({ txHash: onchainRes.txHash, nullifierHash: result.nullifier_hash })
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Unknown error'
       setError(msg)
@@ -61,16 +97,23 @@ export function WorldIDButton({
     }
   }
 
+  if (verified) {
+    return (
+      <div className="flex items-center gap-2 rounded-xl border border-[#22c55e]/30 bg-[#22c55e]/10 px-3 py-2">
+        <span className="text-[#22c55e]">✓</span>
+        <span className="text-sm text-[#22c55e]">Verified Human</span>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-2">
       <IDKitWidget
         app_id={appId as `app_${string}`}
-        action="zenagent-checkin"
+        action="zenagent-verify"
         signal={address || '0x0'}
         verification_level={VerificationLevel.Orb}
-        handleVerify={handleVerify}
-        onSuccess={() => {}}
-        aria-label="World ID Verification"
+        onSuccess={handleSuccess}
       >
         {({ open }: { open: () => void }) => (
           <Button
