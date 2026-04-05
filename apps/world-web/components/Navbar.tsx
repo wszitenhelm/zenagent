@@ -12,6 +12,7 @@ export function Navbar() {
   const [mounted, setMounted] = useState(false)
   const [isVerified, setIsVerified] = useState(false)
   const [ensName, setEnsName] = useState<string | null>(null)
+  const [demoDismissed, setDemoDismissed] = useState(false)
   
   useEffect(() => setMounted(true), [])
   
@@ -22,6 +23,8 @@ export function Navbar() {
       setIsVerified(!!verified)
       const storedEns = localStorage.getItem('ens_name')
       setEnsName(storedEns)
+      const dismissed = localStorage.getItem('demo_dismissed')
+      setDemoDismissed(!!dismissed)
     }
   }, [isConnected])
 
