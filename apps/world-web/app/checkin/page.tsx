@@ -112,6 +112,9 @@ export default function CheckinPage() {
       }
       console.log('[checkin] Check-in success:', checkinRes.txHash)
 
+      // Demo: set streak to 1 after successful check-in
+      setStreak(1)
+
       // Step 3: Generate manifestation
       console.log('[checkin] Generating manifestation...')
       const manifesto = await generateManifestation(mood, stress, journal, streak)
@@ -261,7 +264,7 @@ export default function CheckinPage() {
                     <div className="mt-1 text-sm text-[#fbbf24] break-words">{error}</div>
                   </div>
                 ) : null}
-                <div className="text-sm text-white/80">Streak: {streak}🔥</div>
+                <div className="text-sm text-white/80">Streak: 1🔥</div>
                 {quote ? (
                   <div className="mt-2 text-sm text-white/80">Quote: "{quote}"</div>
                 ) : null}

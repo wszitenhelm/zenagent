@@ -10,8 +10,20 @@ export default function Home() {
   const { connect, connectors, isPending } = useConnect()
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
+  const [isVerified, setIsVerified] = useState(false)
 
-  useEffect(() => setMounted(true), [])
+  useEffect(() => {
+    setMounted(true)
+    // Reset old demo data when user lands on homepage
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('ens_name')
+      localStorage.removeItem('username')
+      localStorage.removeItem('worldid_verified')
+      localStorage.removeItem('worldid_nullifier')
+      const verified = localStorage.getItem('worldid_verified')
+      setIsVerified(!!verified)
+    }
+  }, [])
 
   const handleStart = async () => {
     if (connectors.length === 0) {
@@ -52,20 +64,27 @@ export default function Home() {
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            {isConnected ? (
-              <Button
-                className="rounded-xl bg-[#c4b5fd] text-[#0f172a] hover:scale-105 hover:bg-[#c4b5fd]/90"
-                onClick={() => router.push('/onboarding')}
-              >
-                Start Your Journey
-              </Button>
-            ) : (
+            {!isConnected ? (
               <Button
                 className="rounded-xl bg-[#c4b5fd] text-[#0f172a] hover:scale-105 hover:bg-[#c4b5fd]/90"
                 onClick={handleStart}
                 disabled={isPending}
               >
                 {isPending ? 'Connecting...' : 'Start Your Journey'}
+              </Button>
+            ) : !isVerified ? (
+              <Button
+                className="rounded-xl bg-[#22c55e] text-white hover:scale-105 hover:bg-[#22c55e]/90"
+                onClick={() => router.push('/onboarding')}
+              >
+                🛡️ Verify You Are Human
+              </Button>
+            ) : (
+              <Button
+                className="rounded-xl bg-[#c4b5fd] text-[#0f172a] hover:scale-105 hover:bg-[#c4b5fd]/90"
+                onClick={() => router.push('/onboarding')}
+              >
+                Start Your Journey
               </Button>
             )}
 

@@ -5,11 +5,14 @@ import { useEffect, useState } from 'react'
 import { getBadges, getReferralCount, getUserProfile } from '@/lib/contract'
 import { ENSCard } from '@/components/ENSCard'
 import { getLevelFromStreak } from '@/lib/ens'
+import { getLocalEntries } from '@/lib/localStorage'
 
 export default function ProfilePage() {
   const { address } = useAccount()
   const [nullifierHash, setNullifierHash] = useState<string | null>(null)
   const [ensName, setEnsName] = useState<string | null>(null)
+  const [isVerified, setIsVerified] = useState(false)
+  const [entries, setEntries] = useState<Array<{date: string, mood: number}>>([])
 
   const [profile, setProfile] = useState<{
     username: string
@@ -21,8 +24,9 @@ export default function ProfilePage() {
   } | null>(null)
   const [badges, setBadges] = useState<{ sevenDay: boolean; thirtyDay: boolean; ninetyDay: boolean } | null>(null)
   const [referrals, setReferrals] = useState<bigint | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  // Load nullifier and ENS from localStorage
+  // Load nullifier, ENS, and verification status from localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('worldid_nullifier')
@@ -31,31 +35,43 @@ export default function ProfilePage() {
       }
       const storedEns = localStorage.getItem('ens_name')
       setEnsName(storedEns)
+      const verified = localStorage.getItem('worldid_verified')
+      setIsVerified(!!verified)
     }
   }, [])
 
   // Refresh data when page loads or becomes visible
-  useEffect(() => {
-    const loadData = async () => {
-      if (!address) return
-      try {
-        const p = await getUserProfile(address)
-        const b = await getBadges(address)
-        const r = await getReferralCount(address)
-        setProfile({
-          username: p[0],
-          streak: p[1],
-          totalCheckIns: p[2],
-          registeredAt: p[3],
-          worldIDVerified: p[4],
-          ensName: p[5],
-        })
-        setBadges({ sevenDay: b[0], thirtyDay: b[1], ninetyDay: b[2] })
-        setReferrals(r)
-      } catch (e) {
-        console.error('Failed to load profile:', e)
-      }
+  const loadData = async () => {
+    if (!address) {
+      setLoading(false)
+      return
     }
+    setLoading(true)
+    try {
+      const p = await getUserProfile(address)
+      const r = await getReferralCount(address)
+      setProfile({
+        username: p[0],
+        streak: BigInt(1), // Demo: hardcoded to 1
+        totalCheckIns: BigInt(1), // Demo: hardcoded to 1
+        registeredAt: p[3],
+        worldIDVerified: p[4],
+        ensName: p[5],
+      })
+      setBadges({ sevenDay: true, thirtyDay: false, ninetyDay: false }) // Demo: show 7day badge
+      setReferrals(r)
+      
+      // Also update localStorage entries
+      const localEntries = getLocalEntries()
+      setEntries(localEntries)
+    } catch (e) {
+      console.error('Failed to load profile:', e)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
     loadData()
     
     // Refresh when tab becomes visible
@@ -63,17 +79,33 @@ export default function ProfilePage() {
       if (document.visibilityState === 'visible') loadData()
     }
     document.addEventListener('visibilitychange', handleVisibility)
-    return () => document.removeEventListener('visibilitychange', handleVisibility)
+    
+    // Refresh every 5 seconds when on profile page
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') loadData()
+    }, 5000)
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility)
+      clearInterval(interval)
+    }
   }, [address])
 
   const level = profile ? getLevelFromStreak(Number(profile.streak)) : 'Seedling 🌱'
-  const avgMood = 7.2 // Demo value
-  const lastCheckin = new Date().toISOString().split('T')[0]
+  const avgMood = entries.length > 0 
+    ? (entries.reduce((sum, e) => sum + e.mood, 0) / entries.length).toFixed(1)
+    : '7.2'
+  const lastCheckin = entries.length > 0 
+    ? entries[entries.length - 1].date 
+    : new Date().toISOString().split('T')[0]
   const badgesList = [
     badges?.sevenDay ? '7day' : null,
     badges?.thirtyDay ? '30day' : null,
     badges?.ninetyDay ? '90day' : null,
   ].filter(Boolean) as string[]
+
+  // Use both contract data and localStorage for verification status
+  const worldIdVerified = profile?.worldIDVerified || isVerified || !!nullifierHash
 
   return (
     <main className="mx-auto w-full max-w-4xl px-6 py-10">
@@ -85,17 +117,22 @@ export default function ProfilePage() {
 
       <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
         <div className="text-xs text-white/60">Profile</div>
-        <div className="mt-1 text-2xl font-semibold text-white">{address ? (ensName || profile?.username || 'agent-1') : 'Connect wallet'}</div>
+        <div className="mt-1 text-2xl font-semibold text-white">
+          {address ? (ensName || profile?.username || 'agent-1') : 'Connect wallet'}
+          {loading && address && (
+            <span className="ml-2 text-xs text-white/40">(syncing...)</span>
+          )}
+        </div>
 
         {address ? (
           <div className="mt-4 flex flex-col gap-2">
             <div
-              className={`inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs ${profile?.worldIDVerified ? 'text-[#6ee7b7]' : 'text-[#fbbf24]'}`}
+              className={`inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs ${worldIdVerified ? 'text-[#6ee7b7]' : 'text-[#fbbf24]'}`}
             >
-              World ID {profile?.worldIDVerified ? 'verified' : 'not verified'}
+              World ID {worldIdVerified ? 'verified ✓' : 'not verified'}
             </div>
             {/* Nullifier Hash Display */}
-            {nullifierHash && (
+            {nullifierHash && worldIdVerified && (
               <div 
                 className="inline-flex items-center gap-2 rounded-full border border-[#22c55e]/30 bg-[#22c55e]/10 px-3 py-1 text-xs text-[#22c55e] cursor-help"
                 title="Verified without revealing identity"
@@ -109,21 +146,40 @@ export default function ProfilePage() {
 
         <div className="mt-8 grid gap-4 md:grid-cols-3">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div className="text-xs text-white/60">Check-ins</div>
-            <div className="mt-1 text-xl font-semibold text-white">{profile ? Number(profile.totalCheckIns) : 0}</div>
+            <div className="text-xs text-white/60">Total Check-ins</div>
+            <div className="mt-1 text-xl font-semibold text-white">
+              {profile ? Number(profile.totalCheckIns).toString() : '0'}
+            </div>
+            <div className="text-xs text-white/40 mt-1">Onchain count</div>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div className="text-xs text-white/60">Streak</div>
-            <div className="mt-1 text-xl font-semibold text-white">{profile ? Number(profile.streak) : 0}🔥</div>
+            <div className="text-xs text-white/60">Current Streak</div>
+            <div className="mt-1 text-xl font-semibold text-white">
+              {profile ? Number(profile.streak).toString() : '0'}🔥
+            </div>
+            <div className="text-xs text-white/40 mt-1">Days in a row</div>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div className="text-xs text-white/60">Badges</div>
-            <div className="mt-2 flex gap-2 text-sm">
-              <span className={badges?.sevenDay ? '' : 'text-white/40'}>🌱</span>
-              <span className={badges?.thirtyDay ? '' : 'text-white/40'}>🌿</span>
-              <span className={badges?.ninetyDay ? '' : 'text-white/40'}>🌳</span>
+            <div className="text-xs text-white/60">Badges Earned</div>
+            <div className="mt-2 flex gap-2 text-lg">
+              <span title={badges?.sevenDay ? '7-day streak earned!' : 'Complete 7 days'} className={badges?.sevenDay ? '' : 'opacity-30 grayscale'}>🌱</span>
+              <span title={badges?.thirtyDay ? '30-day streak earned!' : 'Complete 30 days'} className={badges?.thirtyDay ? '' : 'opacity-30 grayscale'}>🌿</span>
+              <span title={badges?.ninetyDay ? '90-day streak earned!' : 'Complete 90 days'} className={badges?.ninetyDay ? '' : 'opacity-30 grayscale'}>🌳</span>
+            </div>
+            <div className="text-xs text-white/40 mt-1">
+              {badgesList.length > 0 ? `${badgesList.length} earned` : 'Keep going!'}
             </div>
           </div>
+        </div>
+
+        <div className="mt-4 flex justify-end">
+          <button 
+            onClick={() => loadData()}
+            className="text-xs text-white/40 hover:text-white/80 transition-colors"
+            disabled={loading}
+          >
+            {loading ? '↻ Syncing...' : '↻ Refresh data'}
+          </button>
         </div>
 
         <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-4">

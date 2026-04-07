@@ -18,14 +18,30 @@ export function Navbar() {
   
   // Check World ID verification status and ENS name
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const verified = localStorage.getItem('worldid_verified')
-      setIsVerified(!!verified)
-      const storedEns = localStorage.getItem('ens_name')
-      setEnsName(storedEns)
-      const dismissed = localStorage.getItem('demo_dismissed')
-      setDemoDismissed(!!dismissed)
+    const checkStorage = () => {
+      if (typeof window !== 'undefined') {
+        // Only show verified/ENS if wallet is connected
+        if (!isConnected) {
+          setIsVerified(false)
+          setEnsName(null)
+          return
+        }
+        const verified = localStorage.getItem('worldid_verified')
+        setIsVerified(!!verified)
+        const storedEns = localStorage.getItem('ens_name')
+        setEnsName(storedEns)
+        const dismissed = localStorage.getItem('demo_dismissed')
+        setDemoDismissed(!!dismissed)
+      }
     }
+    
+    checkStorage()
+    
+    // Refresh on window focus (when user returns to tab)
+    const handleFocus = () => checkStorage()
+    window.addEventListener('focus', handleFocus)
+    
+    return () => window.removeEventListener('focus', handleFocus)
   }, [isConnected])
 
   return (
