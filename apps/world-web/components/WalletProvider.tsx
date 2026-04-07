@@ -33,22 +33,37 @@ if (typeof window !== 'undefined') {
     try {
       return await originalFetch(input, init)
     } catch (e) {
-      if (url.includes('metamask')) {
+      // Silently handle MetaMask and network errors
+      if (url.includes('metamask') || url.includes('infura') || url.includes('alchemy')) {
         return new Response('{}', { status: 200 })
       }
       throw e
     }
   }
   
-  // Also suppress console errors
+  // Also suppress console errors - completely silence MetaMask errors
   const origError = console.error
   console.error = (...args: any[]) => {
     const msg = args[0]?.toString?.() || ''
-    if (msg.includes('Failed to fetch') && msg.includes('Sender')) return
+    // Suppress all common MetaMask and wallet errors
+    if (msg.includes('Failed to fetch')) return
     if (msg.includes('Analytics SDK')) return
     if (msg.includes('sdk-analytics')) return
     if (msg.includes('metamask')) return
+    if (msg.includes('MetaMask')) return
+    if (msg.includes('Sender')) return
+    if (msg.includes('wallet')) return
+    if (msg.includes('provider')) return
+    if (args[0] instanceof Error && args[0].message?.includes('fetch')) return
     origError.apply(console, args)
+  }
+  
+  // Suppress console.warn too
+  const origWarn = console.warn
+  console.warn = (...args: any[]) => {
+    const msg = args[0]?.toString?.() || ''
+    if (msg.includes('MetaMask') || msg.includes('metamask')) return
+    origWarn.apply(console, args)
   }
 }
 

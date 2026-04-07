@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { useAccount, useWriteContract } from 'wagmi'
 import { ZENAGENT_REGISTRY_ADDRESS, zenAgentRegistryAbi, getUserProfile } from '@/lib/contract'
 import { generateManifestation } from '@/lib/manifestation'
+import { isHumanVerified } from '@/lib/walletStorage'
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n))
@@ -51,11 +52,8 @@ export default function CheckinPage() {
 
   // Check World ID verification status and streak
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const verified = localStorage.getItem('worldid_verified')
-      setIsVerified(!!verified)
-    }
     if (address) {
+      setIsVerified(isHumanVerified(address))
       getUserProfile(address).then((p) => {
         setStreak(Number(p[1])) // streak is at index 1
       }).catch(() => setStreak(0))

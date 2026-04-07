@@ -7,10 +7,12 @@ import { Button } from '@/components/ui/button'
 import { useEffect, useState } from 'react'
 import { getUserProfile } from '@/lib/contract'
 import { getLocalEntries } from '@/lib/localStorage'
+import { getENSName, isHumanVerified } from '@/lib/walletStorage'
 
 export default function DashboardPage() {
   const { address } = useAccount()
   const router = useRouter()
+  const [mounted, setMounted] = useState(false)
   const [ensName, setEnsName] = useState<string | null>(null)
   const [streak, setStreak] = useState(0) // Real value from contract
   const [isVerified, setIsVerified] = useState(false)
@@ -18,13 +20,16 @@ export default function DashboardPage() {
   const [totalCheckIns, setTotalCheckIns] = useState(0) // Real value from contract
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedEns = localStorage.getItem('ens_name')
-      setEnsName(storedEns)
-      const verified = localStorage.getItem('worldid_verified')
-      setIsVerified(!!verified)
-    }
+    setMounted(true)
   }, [])
+
+  // Load wallet data
+  useEffect(() => {
+    if (address) {
+      setEnsName(getENSName(address))
+      setIsVerified(isHumanVerified(address))
+    }
+  }, [address])
 
   useEffect(() => {
     const loadData = async () => {
@@ -60,6 +65,10 @@ export default function DashboardPage() {
   const nextBadgeDays = streak < 7 ? 7 - streak : streak < 30 ? 30 - streak : streak < 90 ? 90 - streak : 0
   const nextBadgeName = streak < 7 ? '7-day 🌱' : streak < 30 ? '30-day 🌿' : streak < 90 ? '90-day 🌳' : 'Zen Master ☯️'
 
+  // Prevent hydration mismatch - use consistent placeholder until mounted
+  const ensDisplay = !mounted ? '—' : (ensName || (address ? 'Not set' : '—'))
+  const worldIdDisplay = !mounted ? '—' : (isVerified ? 'Verified' : 'Not Verified')
+
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-8">
       <div className="flex flex-col gap-6">
@@ -70,13 +79,13 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-center gap-3">
             <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-xs text-white/80 backdrop-blur-sm">
-              ENS: {ensName || (address ? 'Not set' : '—')}
+              ENS: {ensDisplay}
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-xs text-white/80 backdrop-blur-sm">
-              Streak: {streak}🔥
+              Streak: {!mounted ? '—' : streak}🔥
             </div>
-            <div className={`rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-xs backdrop-blur-sm ${isVerified ? 'text-[#6ee7b7]' : 'text-[#fbbf24]'}`}>
-              World ID: {isVerified ? 'Verified' : 'Not Verified'}
+            <div className={`rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-xs backdrop-blur-sm ${!mounted ? '' : isVerified ? 'text-[#6ee7b7]' : 'text-[#fbbf24]'}`}>
+              World ID: {worldIdDisplay}
             </div>
           </div>
         </div>
