@@ -1,22 +1,35 @@
 import { NextResponse } from 'next/server'
+import { uploadWellnessData } from '@/lib/0g'
 
-// Stubbed for demo - 0G Storage integration available
 export async function POST(request: Request): Promise<Response> {
   try {
-    const body = (await request.json()) as { ciphertextBase64?: string }
-    if (!body.ciphertextBase64) {
-      return NextResponse.json({ error: 'Missing ciphertextBase64' }, { status: 400 })
+    const body = await request.json()
+    const { walletAddress, journal, gratitude, mood, stress, sleep, date } = body
+    
+    if (!walletAddress || !journal) {
+      return NextResponse.json({ error: 'Missing walletAddress or journal' }, { status: 400 })
     }
     
-    // Demo response - full 0G Storage SDK integration available
-    const demoHash = '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('')
+    const privateKey = process.env.PRIVATE_KEY
+    if (!privateKey) {
+      return NextResponse.json({ error: 'Missing PRIVATE_KEY' }, { status: 500 })
+    }
+    
+    // Upload to 0G Storage (encrypted)
+    const rootHash = await uploadWellnessData(
+      { mood, stress, sleep, gratitude: gratitude || '', journal, date: date || new Date().toISOString() },
+      walletAddress,
+      privateKey
+    )
     
     return NextResponse.json({
       success: true,
-      rootHash: demoHash,
-      message: '0G Storage demo - full integration requires @0gfoundation/0g-ts-sdk',
+      rootHash,
+      message: 'Journal encrypted and uploaded to 0G Storage',
     })
   } catch (err) {
-    return NextResponse.json({ error: 'Upload failed' }, { status: 500 })
+    const message = err instanceof Error ? err.message : 'Upload failed'
+    console.error('[0G Upload Error]:', err)
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

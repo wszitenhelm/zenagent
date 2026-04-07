@@ -87,11 +87,29 @@ export default function CheckinPage() {
 
     setSubmitting(true)
     try {
-      // Step 1: Encrypt journal (skip 0G upload for demo - API routes work)
-      console.log('[checkin] Encrypting journal...')
-      // 0G Storage upload available at /api/0g/upload-journal
-      const rootHash = 'demo-tx-hash'
+      // Step 1: Encrypt and upload journal to 0G Storage
+      console.log('[checkin] Uploading encrypted journal to 0G...')
+      const uploadRes = await fetch('/api/0g/upload-journal', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          walletAddress: address,
+          journal,
+          gratitude,
+          mood,
+          stress,
+          sleep,
+          date: new Date().toISOString(),
+        }),
+      }).then((r) => r.json())
+      
+      if (!uploadRes?.success) {
+        throw new Error(uploadRes?.error || '0G upload failed')
+      }
+      
+      const rootHash = uploadRes.txHash || uploadRes.rootHash
       setUploadedRootHash(rootHash)
+      console.log('[checkin] 0G upload success:', rootHash)
 
       // Step 2: Submit check-in via backend (avoids wallet popup hanging)
       console.log('[checkin] Submitting check-in via backend...')
@@ -112,8 +130,8 @@ export default function CheckinPage() {
       }
       console.log('[checkin] Check-in success:', checkinRes.txHash)
 
-      // Demo: set streak to 1 after successful check-in
-      setStreak(1)
+      // Demo: hardcoded streak display - in production this comes from contract
+      // setStreak(1)
 
       // Step 3: Generate manifestation
       console.log('[checkin] Generating manifestation...')
@@ -264,11 +282,10 @@ export default function CheckinPage() {
                     <div className="mt-1 text-sm text-[#fbbf24] break-words">{error}</div>
                   </div>
                 ) : null}
-                <div className="text-sm text-white/80">Streak: 1🔥</div>
+                <div className="text-sm text-white/80">Check-in saved! 🔥</div>
                 {quote ? (
                   <div className="mt-2 text-sm text-white/80">Quote: "{quote}"</div>
                 ) : null}
-                <div className="mt-2 text-xs text-white/60">Badge earned: 7day🌱</div>
                 {uploadedRootHash && !error ? (
                   <div className="mt-3 rounded-xl border border-[#22c55e]/30 bg-[#22c55e]/10 p-3">
                     <div className="flex items-center gap-2">

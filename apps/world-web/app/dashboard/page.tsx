@@ -12,10 +12,10 @@ export default function DashboardPage() {
   const { address } = useAccount()
   const router = useRouter()
   const [ensName, setEnsName] = useState<string | null>(null)
-  const [streak, setStreak] = useState(1) // Demo: hardcoded to 1
+  const [streak, setStreak] = useState(0) // Real value from contract
   const [isVerified, setIsVerified] = useState(false)
   const [moodData, setMoodData] = useState<{ day: string; mood: number }[]>([])
-  const [totalCheckIns, setTotalCheckIns] = useState(0)
+  const [totalCheckIns, setTotalCheckIns] = useState(0) // Real value from contract
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -31,8 +31,9 @@ export default function DashboardPage() {
       if (!address) return
       try {
         const profile = await getUserProfile(address)
-        // Demo: streak hardcoded to 1
-        setTotalCheckIns(1) // Demo: hardcoded to 1
+        // Real values from contract
+        setStreak(Number(profile[1])) // streak at index 1
+        setTotalCheckIns(Number(profile[2])) // totalCheckIns at index 2
       } catch (e) {
         console.error('Failed to load profile:', e)
       }

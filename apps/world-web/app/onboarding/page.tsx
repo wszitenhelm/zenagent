@@ -5,10 +5,13 @@ import { WorldIDButton } from '@/components/WorldIDButton'
 import { useAccount } from 'wagmi'
 import { Button } from '@/components/ui/button'
 import { checkAvailability, mintSubname } from '@/lib/ens'
+import { getUserProfile } from '@/lib/contract'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 export default function OnboardingPage() {
   const { address } = useAccount()
+  const router = useRouter()
   const [step, setStep] = useState(1)
   const [status, setStatus] = useState<string>('')
   const [lastTx, setLastTx] = useState<string>('')
@@ -19,19 +22,46 @@ export default function OnboardingPage() {
   const [checking, setChecking] = useState(false)
   const [ensName, setEnsName] = useState<string>('')
   const [registered, setRegistered] = useState(false)
+  const [loadingExisting, setLoadingExisting] = useState(true)
   
   useEffect(() => setMounted(true), [])
+  
+  // Check if already has ENS on this wallet - redirect to dashboard
+  useEffect(() => {
+    const checkExisting = async () => {
+      if (!address) {
+        setLoadingExisting(false)
+        return
+      }
+      try {
+        const profile = await getUserProfile(address)
+        // profile[5] is ensName from getUserProfile
+        const existingEns = profile[5]
+        if (existingEns && existingEns.length > 0) {
+          // User already has ENS, redirect to dashboard
+          localStorage.setItem('ens_name', existingEns)
+          localStorage.setItem('username', profile[0]) // username at index 0
+          router.push('/dashboard')
+          return
+        }
+      } catch (e) {
+        console.log('No existing profile found')
+      }
+      setLoadingExisting(false)
+    }
+    checkExisting()
+  }, [address, router])
   
   // Check if already verified
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('worldid_verified')
-      if (stored) {
+      if (stored && !loadingExisting) {
         setVerified(true)
         setStep(2)
       }
     }
-  }, [])
+  }, [loadingExisting])
 
   const checkUsername = async () => {
     if (!username || username.length < 3) {
@@ -95,11 +125,11 @@ export default function OnboardingPage() {
     }
   }
 
-  if (!mounted) {
+  if (!mounted || loadingExisting) {
     return (
       <main className="mx-auto w-full max-w-3xl px-6 py-10">
         <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
-          <div className="text-sm text-white/60">Loading…</div>
+          <div className="text-sm text-white/60">Checking your profile…</div>
         </div>
       </main>
     )

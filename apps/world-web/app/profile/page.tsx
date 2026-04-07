@@ -52,13 +52,14 @@ export default function ProfilePage() {
       const r = await getReferralCount(address)
       setProfile({
         username: p[0],
-        streak: BigInt(1), // Demo: hardcoded to 1
-        totalCheckIns: BigInt(1), // Demo: hardcoded to 1
+        streak: p[1], // Real value from contract
+        totalCheckIns: p[2], // Real value from contract
         registeredAt: p[3],
         worldIDVerified: p[4],
         ensName: p[5],
       })
-      setBadges({ sevenDay: true, thirtyDay: false, ninetyDay: false }) // Demo: show 7day badge
+      const b = await getBadges(address)
+      setBadges({ sevenDay: b[0], thirtyDay: b[1], ninetyDay: b[2] }) // Convert tuple to object
       setReferrals(r)
       
       // Also update localStorage entries
