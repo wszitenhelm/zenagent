@@ -6,6 +6,7 @@ import { getBadges, getReferralCount, getUserProfile } from '@/lib/contract'
 import { ENSCard } from '@/components/ENSCard'
 import { getLevelFromStreak } from '@/lib/ens'
 import { getLocalEntries } from '@/lib/localStorage'
+import { getWalletData, isHumanVerified, getENSName, setWalletData } from '@/lib/walletStorage'
 
 export default function ProfilePage() {
   const { address } = useAccount()
@@ -26,19 +27,15 @@ export default function ProfilePage() {
   const [referrals, setReferrals] = useState<bigint | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Load nullifier, ENS, and verification status from localStorage
+  // Load wallet-based data
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('worldid_nullifier')
-      if (stored) {
-        setNullifierHash(stored)
-      }
-      const storedEns = localStorage.getItem('ens_name')
-      setEnsName(storedEns)
-      const verified = localStorage.getItem('worldid_verified')
-      setIsVerified(!!verified)
+    if (address) {
+      const walletData = getWalletData(address)
+      setNullifierHash(walletData.worldIdNullifier)
+      setEnsName(walletData.ensName)
+      setIsVerified(isHumanVerified(address))
     }
-  }, [])
+  }, [address])
 
   // Refresh data when page loads or becomes visible
   const loadData = async () => {
@@ -61,6 +58,21 @@ export default function ProfilePage() {
       const b = await getBadges(address)
       setBadges({ sevenDay: b[0], thirtyDay: b[1], ninetyDay: b[2] }) // Convert tuple to object
       setReferrals(r)
+      
+      // Sync contract data to wallet storage
+      if (p[5] && p[5].length > 0) {
+        setWalletData(address, {
+          ensName: p[5],
+          username: p[0],
+        })
+        setEnsName(p[5])
+      }
+      if (p[4]) {
+        setWalletData(address, {
+          humanVerified: true,
+        })
+        setIsVerified(true)
+      }
       
       // Also update localStorage entries
       const localEntries = getLocalEntries()
