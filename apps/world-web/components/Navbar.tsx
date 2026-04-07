@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useAccount, useConnect, useDisconnect } from 'wagmi'
 import { Button } from '@/components/ui/button'
 import { useState, useEffect } from 'react'
+import { getWalletData, isHumanVerified, getENSName } from '@/lib/walletStorage'
 
 export function Navbar() {
   const { address, isConnected } = useAccount()
@@ -12,37 +13,30 @@ export function Navbar() {
   const [mounted, setMounted] = useState(false)
   const [isVerified, setIsVerified] = useState(false)
   const [ensName, setEnsName] = useState<string | null>(null)
-  const [demoDismissed, setDemoDismissed] = useState(false)
   
   useEffect(() => setMounted(true), [])
   
-  // Check World ID verification status and ENS name
+  // Check wallet-based storage
   useEffect(() => {
     const checkStorage = () => {
-      if (typeof window !== 'undefined') {
-        // Only show verified/ENS if wallet is connected
-        if (!isConnected) {
-          setIsVerified(false)
-          setEnsName(null)
-          return
-        }
-        const verified = localStorage.getItem('worldid_verified')
-        setIsVerified(!!verified)
-        const storedEns = localStorage.getItem('ens_name')
-        setEnsName(storedEns)
-        const dismissed = localStorage.getItem('demo_dismissed')
-        setDemoDismissed(!!dismissed)
+      if (!isConnected || !address) {
+        setIsVerified(false)
+        setEnsName(null)
+        return
       }
+      // Read from wallet storage
+      setIsVerified(isHumanVerified(address))
+      setEnsName(getENSName(address))
     }
     
     checkStorage()
     
-    // Refresh on window focus (when user returns to tab)
+    // Refresh on window focus
     const handleFocus = () => checkStorage()
     window.addEventListener('focus', handleFocus)
     
     return () => window.removeEventListener('focus', handleFocus)
-  }, [isConnected])
+  }, [isConnected, address])
 
   return (
     <div className="sticky top-0 z-50 border-b border-white/10 bg-[#0f172a]/80 backdrop-blur-sm">

@@ -6,6 +6,7 @@ import { useAccount } from 'wagmi'
 import { Button } from '@/components/ui/button'
 import { checkAvailability, mintSubname } from '@/lib/ens'
 import { getUserProfile } from '@/lib/contract'
+import { setWalletData, isHumanVerified, getENSName } from '@/lib/walletStorage'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -33,35 +34,48 @@ export default function OnboardingPage() {
         setLoadingExisting(false)
         return
       }
+      
+      // Check wallet storage first
+      const existingEns = getENSName(address)
+      if (existingEns) {
+        router.push('/dashboard')
+        return
+      }
+      
+      // Also check contract (for data stored onchain but not in localStorage)
       try {
         const profile = await getUserProfile(address)
-        // profile[5] is ensName from getUserProfile
-        const existingEns = profile[5]
-        if (existingEns && existingEns.length > 0) {
-          // User already has ENS, redirect to dashboard
-          localStorage.setItem('ens_name', existingEns)
-          localStorage.setItem('username', profile[0]) // username at index 0
+        const contractEns = profile[5]
+        if (contractEns && contractEns.length > 0) {
+          // Save to wallet storage and redirect
+          setWalletData(address, {
+            ensName: contractEns,
+            username: profile[0],
+          })
           router.push('/dashboard')
           return
         }
       } catch (e) {
-        console.log('No existing profile found')
+        console.log('No existing profile found onchain')
       }
+      
+      // Check if already verified (skip to step 2)
+      if (isHumanVerified(address)) {
+        setVerified(true)
+        setStep(2)
+      }
+      
       setLoadingExisting(false)
     }
     checkExisting()
   }, [address, router])
   
-  // Check if already verified
+  // Update step when verified changes
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('worldid_verified')
-      if (stored && !loadingExisting) {
-        setVerified(true)
-        setStep(2)
-      }
+    if (verified && step === 1) {
+      setStep(2)
     }
-  }, [loadingExisting])
+  }, [verified, step])
 
   const checkUsername = async () => {
     if (!username || username.length < 3) {
@@ -109,9 +123,11 @@ export default function OnboardingPage() {
       console.log('[onboarding] ENS response:', ensRes)
       setEnsName(ensRes.ensName)
       
-      // Store in localStorage
-      localStorage.setItem('ens_name', ensRes.ensName)
-      localStorage.setItem('username', username)
+      // Store in wallet-based storage
+      setWalletData(address, {
+        ensName: ensRes.ensName,
+        username: username,
+      })
 
       setLastTx(ensRes.txHash)
       setRegistered(true)

@@ -5,6 +5,7 @@ import type { ISuccessResult } from '@worldcoin/idkit'
 import { useAccount } from 'wagmi'
 import { Button } from '@/components/ui/button'
 import { useState, useEffect } from 'react'
+import { setWalletData, isHumanVerified } from '@/lib/walletStorage'
 
 // Suppress Radix DialogTitle warning from IDKitWidget (internal, can't fix)
 if (typeof window !== 'undefined') {
@@ -27,15 +28,12 @@ export function WorldIDButton({
 
   const appId = process.env.NEXT_PUBLIC_WORLD_APP_ID
 
-  // Check localStorage on mount
+  // Check wallet storage on mount
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('worldid_verified')
-      if (stored) {
-        setVerified(true)
-      }
+    if (address) {
+      setVerified(isHumanVerified(address))
     }
-  }, [])
+  }, [address])
 
   if (!appId) {
     return (
@@ -65,10 +63,12 @@ export function WorldIDButton({
         throw new Error(res?.error || 'Verification failed')
       }
 
-      // Store in localStorage
-      localStorage.setItem('worldid_verified', 'true')
-      localStorage.setItem('worldid_nullifier', result.nullifier_hash)
-      localStorage.setItem('worldid_verified_at', Date.now().toString())
+      // Store in wallet-based storage
+      setWalletData(address, {
+        humanVerified: true,
+        worldIdNullifier: result.nullifier_hash,
+        verifiedAt: new Date().toISOString(),
+      })
 
       setVerified(true)
       onVerified?.({ txHash: res.txHash, nullifierHash: result.nullifier_hash })

@@ -4,26 +4,32 @@ import { useRouter } from 'next/navigation'
 import { useAccount, useConnect } from 'wagmi'
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
+import { getWalletData, isHumanVerified, getENSName, migrateOldStorage } from '@/lib/walletStorage'
 
 export default function Home() {
-  const { isConnected } = useAccount()
+  const { isConnected, address } = useAccount()
   const { connect, connectors, isPending } = useConnect()
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
+  const [hasENS, setHasENS] = useState(false)
   const [isVerified, setIsVerified] = useState(false)
 
   useEffect(() => {
     setMounted(true)
-    // Reset old demo data when user lands on homepage
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('ens_name')
-      localStorage.removeItem('username')
-      localStorage.removeItem('worldid_verified')
-      localStorage.removeItem('worldid_nullifier')
-      const verified = localStorage.getItem('worldid_verified')
-      setIsVerified(!!verified)
+    // Migrate old storage on mount
+    if (address) {
+      migrateOldStorage(address)
     }
-  }, [])
+  }, [address])
+  
+  // Check wallet state when connected
+  useEffect(() => {
+    if (address) {
+      setIsVerified(isHumanVerified(address))
+      const ens = getENSName(address)
+      setHasENS(!!ens)
+    }
+  }, [address])
 
   const handleStart = async () => {
     if (connectors.length === 0) {
@@ -65,6 +71,7 @@ export default function Home() {
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
             {!isConnected ? (
+              // NOT connected: Start Your Journey (connect wallet)
               <Button
                 className="rounded-xl bg-[#c4b5fd] text-[#0f172a] hover:scale-105 hover:bg-[#c4b5fd]/90"
                 onClick={handleStart}
@@ -73,28 +80,39 @@ export default function Home() {
                 {isPending ? 'Connecting...' : 'Start Your Journey'}
               </Button>
             ) : !isVerified ? (
+              // Connected + NOT verified: Verify You Are Human
               <Button
                 className="rounded-xl bg-[#22c55e] text-white hover:scale-105 hover:bg-[#22c55e]/90"
                 onClick={() => router.push('/onboarding')}
               >
                 🛡️ Verify You Are Human
               </Button>
+            ) : !hasENS ? (
+              // Connected + verified + NO ENS: Create ENS + View Dashboard
+              <>
+                <Button
+                  className="rounded-xl bg-[#c4b5fd] text-[#0f172a] hover:scale-105 hover:bg-[#c4b5fd]/90"
+                  onClick={() => router.push('/onboarding')}
+                >
+                  Create ENS
+                </Button>
+                <Button
+                  variant="outline"
+                  className="rounded-xl bg-white/5 text-white/90 hover:scale-105 hover:bg-white/10"
+                  onClick={() => router.push('/dashboard')}
+                >
+                  View Dashboard
+                </Button>
+              </>
             ) : (
+              // Connected + verified + HAS ENS: View Dashboard only
               <Button
-                className="rounded-xl bg-[#c4b5fd] text-[#0f172a] hover:scale-105 hover:bg-[#c4b5fd]/90"
-                onClick={() => router.push('/onboarding')}
+                className="rounded-xl bg-[#22c55e] text-white hover:scale-105 hover:bg-[#22c55e]/90"
+                onClick={() => router.push('/dashboard')}
               >
-                Start Your Journey
+                View Dashboard
               </Button>
             )}
-
-            <Button
-              variant="outline"
-              className="rounded-xl bg-white/5 text-white/90 hover:scale-105 hover:bg-white/10"
-              onClick={() => router.push('/dashboard')}
-            >
-              View Dashboard
-            </Button>
           </div>
 
           <div className="mt-10 grid gap-4 md:grid-cols-3">
