@@ -89,10 +89,12 @@ export default function InsightsPage() {
   const [habits, setHabits] = useState<Habit[]>(WELCOME_HABITS)
   const [aiSuggested, setAiSuggested] = useState(NEW_USER_AI_SUGGESTED)
   const [savedQuotes, setSavedQuotes] = useState<{quote: string, date: string, mood: number}[]>([])
-  const [showToast, setShowToast] = useState(true)
-  const [quote] = useState("Your wellness journey is building momentum. Take a breath and appreciate your progress.")
+  const [showToast, setShowToast] = useState(false)
+  const [quote, setQuote] = useState("Your wellness journey is building momentum. Take a breath and appreciate your progress.")
+  const [aiLetter, setAiLetter] = useState<{ title: string; subtitle: string; body: string } | null>(null)
+  const [loadingAi, setLoadingAi] = useState(false)
   const [username, setUsername] = useState('')
-  const [entries, setEntries] = useState<Array<{mood: number, stress: number, sleep: number, date: string}>>([])
+  const [entries, setEntries] = useState<Array<{mood: number, stress: number, sleep: number, date: string, note?: string}>>([])
   const [streak, setStreak] = useState(0)
   const [totalCheckIns, setTotalCheckIns] = useState(0)
   const [isNewUser, setIsNewUser] = useState(true)
@@ -131,11 +133,54 @@ export default function InsightsPage() {
     setIsNewUser(localEntries.length === 0 && totalCheckIns === 0)
   }, [totalCheckIns])
 
+  // Generate AI letter when data changes
+  useEffect(() => {
+    const generateAiLetter = async () => {
+      if (!address || entries.length === 0) return
+      
+      setLoadingAi(true)
+      try {
+        // Get latest entry for context
+        const latestEntry = entries[entries.length - 1]
+        
+        const response = await fetch('/api/manifestation', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            mood: latestEntry.mood,
+            stress: latestEntry.stress,
+            sleep: latestEntry.sleep,
+            streak,
+            journal: latestEntry.note || '',
+            gratitude: ''
+          })
+        }).then(r => r.json())
+
+        if (response.success) {
+          setAiLetter({
+            title: `Your Week ${streak > 0 ? '- Day ${streak}' : ''}`,
+            subtitle: response.source === 'groq-llm' ? 'AI-Powered Wellness Reflection' : 'Personalized Wellness Reflection',
+            body: `${response.manifestation}\n\n${response.insight}\n\nYour ZenAgent\nDay ${streak} — ${totalCheckIns} check-ins total`
+          })
+        }
+      } catch (e) {
+        console.error('Failed to generate AI letter:', e)
+      } finally {
+        setLoadingAi(false)
+      }
+    }
+    
+    generateAiLetter()
+  }, [address, entries, streak, totalCheckIns])
+
   const avgMood = entries.length > 0 ? (entries.reduce((sum, e) => sum + e.mood, 0) / entries.length).toFixed(1) : '0'
   const avgStress = entries.length > 0 ? (entries.reduce((sum, e) => sum + e.stress, 0) / entries.length).toFixed(1) : '0'
   const badgeEmoji = streak >= 90 ? '🌳' : streak >= 30 ? '🌿' : streak >= 7 ? '🌱' : '✨'
 
   const getWeeklyLetter = () => {
+    // Use AI-generated letter if available
+    if (aiLetter) return aiLetter
+    
     if (isNewUser) return WEEKLY_LETTER_NEW
     return {
       title: WEEKLY_LETTER_TEMPLATE.title,

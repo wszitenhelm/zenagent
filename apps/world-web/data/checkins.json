@@ -52,10 +52,19 @@
         "gratitude": "hi",
         "journalHash": "0x05e418b190a172ce02533442d1aab40743ac371d83c2b0f43ce85e625a096ca7",
         "timestamp": "2026-04-08T21:43:41.761Z"
+      },
+      {
+        "walletAddress": "0x80a577fb7ae0b0c1c270d16899c3e2aa15fd768f",
+        "mood": 7,
+        "stress": 10,
+        "sleep": 1,
+        "gratitude": "nothing",
+        "journalHash": "0xad24d734e6fe8913b2abf4a4147bdb051714d069890e980db810809e05c0cbc0",
+        "timestamp": "2026-04-08T22:51:13.512Z"
       }
     ],
     "streak": 1,
-    "lastCheckIn": "2026-04-08T21:43:41.761Z",
+    "lastCheckIn": "2026-04-08T22:51:13.512Z",
     "lastCheckInDate": "2026-04-08",
     "checkInDates": [
       "2026-04-08"
