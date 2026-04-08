@@ -23,6 +23,7 @@ export default function OnboardingPage() {
   const [checking, setChecking] = useState(false)
   const [ensName, setEnsName] = useState<string>('')
   const [registered, setRegistered] = useState(false)
+  const [registering, setRegistering] = useState(false)
   const [loadingExisting, setLoadingExisting] = useState(true)
   
   useEffect(() => setMounted(true), [])
@@ -100,6 +101,7 @@ export default function OnboardingPage() {
 
   const register = async () => {
     if (!address || !username) return
+    setRegistering(true)
     setStatus('Registering...')
     console.log('[onboarding] Starting registration...')
     try {
@@ -138,6 +140,8 @@ export default function OnboardingPage() {
       const msg = e instanceof Error ? e.message : 'Registration failed'
       setStatus(`Error: ${msg}`)
       alert(`Registration failed: ${msg}`)
+    } finally {
+      setRegistering(false)
     }
   }
 
@@ -248,9 +252,10 @@ export default function OnboardingPage() {
                   </div>
                   <Button
                     onClick={register}
-                    className="mt-3 w-full rounded-xl bg-[#22c55e] text-white hover:bg-[#22c55e]/90"
+                    disabled={registering}
+                    className="mt-3 w-full rounded-xl bg-[#22c55e] text-white hover:bg-[#22c55e]/90 disabled:opacity-50"
                   >
-                    Register & Mint ENS
+                    {registering ? '⏳ Registering & Minting ENS...' : 'Register & Mint ENS'}
                   </Button>
                 </div>
               )}
