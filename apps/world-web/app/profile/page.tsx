@@ -26,6 +26,9 @@ export default function ProfilePage() {
   const [badges, setBadges] = useState<{ sevenDay: boolean; thirtyDay: boolean; ninetyDay: boolean } | null>(null)
   const [referrals, setReferrals] = useState<bigint | null>(null)
   const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
+  
+  useEffect(() => setMounted(true), [])
 
   // Load wallet-based data
   useEffect(() => {
@@ -45,7 +48,9 @@ export default function ProfilePage() {
     }
     setLoading(true)
     try {
+      console.log('[profile] Loading data for address:', address)
       const p = await getUserProfile(address)
+      console.log('[profile] Contract data:', { username: p[0], streak: p[1]?.toString(), totalCheckIns: p[2]?.toString(), worldIDVerified: p[4], ensName: p[5] })
       const r = await getReferralCount(address)
       setProfile({
         username: p[0],
@@ -131,7 +136,7 @@ export default function ProfilePage() {
       <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
         <div className="text-xs text-white/60">Profile</div>
         <div className="mt-1 text-2xl font-semibold text-white">
-          {address ? (ensName || profile?.username || 'agent-1') : 'Connect wallet'}
+          {!mounted ? '...' : (address ? (ensName || profile?.username || 'agent-1') : 'Connect wallet')}
           {loading && address && (
             <span className="ml-2 text-xs text-white/40">(syncing...)</span>
           )}
