@@ -302,7 +302,12 @@ export default function CheckinPage() {
                 ) : null}
                 <div className="text-sm text-white/80">Check-in saved! 🔥</div>
                 {quote ? (
-                  <div className="mt-2 text-sm text-white/80">Quote: "{quote}"</div>
+                  <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3">
+                    <div className="text-sm text-white/90 italic">"{quote.split('\n\n💡')[0]}"</div>
+                    {quote.includes('💡') && (
+                      <div className="mt-2 text-xs text-white/60">{quote.split('\n\n💡')[1]}</div>
+                    )}
+                  </div>
                 ) : null}
                 {uploadedRootHash && !error ? (
                   <div className="mt-3 rounded-xl border border-[#22c55e]/30 bg-[#22c55e]/10 p-3">

@@ -75,29 +75,3 @@ function generateAIInsights(mood: number, stress: number, sleep: number, streak:
 
   return { manifestation, insight }
 }
-
-function generateFallbackManifestation(mood: number, stress: number, streak: number): string {
-  if (streak > 7) {
-    return `Your commitment to ${streak} days of wellness shows incredible dedication. Each check-in reinforces your path to lasting balance and peace.`
-  }
-  if (mood >= 8) {
-    return 'Your positive energy today is a beacon of light. Carry this warmth forward and let it illuminate your path.'
-  }
-  if (stress >= 7) {
-    return 'Breathe deeply. This moment of tension is temporary, but your strength is permanent. Peace is within reach.'
-  }
-  return 'Today is a new opportunity for growth. Embrace each moment with curiosity and kindness toward yourself.'
-}
-
-function generateFallbackInsight(mood: number, stress: number, sleep: number, streak: number): string {
-  if (sleep <= 5) {
-    return 'Your sleep quality seems lower today. Consider a calming evening routine tonight—quality rest is the foundation of emotional resilience.'
-  }
-  if (stress >= 7 && mood <= 5) {
-    return 'High stress paired with lower mood suggests you might need extra self-care today. Even a 5-minute walk or deep breathing can shift your state.'
-  }
-  if (streak > 0) {
-    return `Your ${streak}-day streak reflects building momentum. Consistency in wellness practices creates compound benefits for mind and body.`
-  }
-  return 'Starting your wellness journey takes courage. Each check-in builds awareness, and awareness is the first step to meaningful change.'
-}

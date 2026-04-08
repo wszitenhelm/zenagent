@@ -32,5 +32,33 @@
     "streak": 3,
     "lastCheckIn": "2026-04-08T21:32:35.624Z",
     "lastCheckInDate": "2026-04-08"
+  },
+  "0x80a577fb7ae0b0c1c270d16899c3e2aa15fd768f": {
+    "checkins": [
+      {
+        "walletAddress": "0x80a577fb7ae0b0c1c270d16899c3e2aa15fd768f",
+        "mood": 7,
+        "stress": 5,
+        "sleep": 7,
+        "gratitude": "ok",
+        "journalHash": "0x891c8db13ac6c94a695b513af9fa1e17dfb691bd5a39e398c8810fae274b917a",
+        "timestamp": "2026-04-08T21:43:11.446Z"
+      },
+      {
+        "walletAddress": "0x80a577fb7ae0b0c1c270d16899c3e2aa15fd768f",
+        "mood": 7,
+        "stress": 5,
+        "sleep": 7,
+        "gratitude": "hi",
+        "journalHash": "0x05e418b190a172ce02533442d1aab40743ac371d83c2b0f43ce85e625a096ca7",
+        "timestamp": "2026-04-08T21:43:41.761Z"
+      }
+    ],
+    "streak": 1,
+    "lastCheckIn": "2026-04-08T21:43:41.761Z",
+    "lastCheckInDate": "2026-04-08",
+    "checkInDates": [
+      "2026-04-08"
+    ]
   }
 }
