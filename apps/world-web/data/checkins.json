@@ -1,0 +1,26 @@
+{
+  "0x525c2510e47ce206c27d698ca97a9fc90b509bcf": {
+    "checkins": [
+      {
+        "walletAddress": "0x525c2510e47ce206c27d698ca97a9fc90b509bcf",
+        "mood": 7,
+        "stress": 5,
+        "sleep": 7,
+        "gratitude": "ok",
+        "journalHash": "0x38c354bf9667182c690bc088c609bb3b9933337459d395ce534d547ae73c8ef7",
+        "timestamp": "2026-04-08T20:55:29.011Z"
+      },
+      {
+        "walletAddress": "0x525c2510e47ce206c27d698ca97a9fc90b509bcf",
+        "mood": 7,
+        "stress": 5,
+        "sleep": 7,
+        "gratitude": "ok",
+        "journalHash": "0x7cba984164ce965d036a2730f6865cca861c1fd041ee5e59d6642bae26488d8c",
+        "timestamp": "2026-04-08T20:56:09.347Z"
+      }
+    ],
+    "streak": 2,
+    "lastCheckIn": "2026-04-08T20:56:09.347Z"
+  }
+}

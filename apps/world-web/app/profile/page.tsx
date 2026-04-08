@@ -157,7 +157,7 @@ export default function ProfilePage() {
         <div className="text-xs text-white/60">Profile</div>
         <div className="mt-1 text-2xl font-semibold text-white">
           {!mounted ? '...' : (address ? (ensName || profile?.username || 'agent-1') : 'Connect wallet')}
-          {loading && address && (
+          {mounted && loading && address && (
             <span className="ml-2 text-xs text-white/40">(syncing...)</span>
           )}
         </div>

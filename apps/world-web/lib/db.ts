@@ -20,6 +20,7 @@ interface UserData {
   checkins: CheckIn[]
   streak: number
   lastCheckIn: string | null
+  lastCheckInDate: string | null // YYYY-MM-DD format
 }
 
 function ensureDb() {
@@ -49,13 +50,27 @@ export async function saveCheckIn(checkIn: CheckIn): Promise<{ streak: number; t
   const address = checkIn.walletAddress.toLowerCase()
   
   if (!db[address]) {
-    db[address] = { checkins: [], streak: 0, lastCheckIn: null }
+    db[address] = { checkins: [], streak: 0, lastCheckIn: null, lastCheckInDate: null }
   }
   
   const userData = db[address]
   const now = new Date(checkIn.timestamp)
+  const today = now.toISOString().split('T')[0] // YYYY-MM-DD
   
-  // Calculate streak
+  // Check if already checked in today
+  if (userData.lastCheckInDate === today) {
+    // Already checked in today - save check-in but don't increment streak
+    userData.checkins.push(checkIn)
+    userData.lastCheckIn = checkIn.timestamp
+    // Streak stays the same
+    writeDb(db)
+    return {
+      streak: userData.streak,
+      totalCheckIns: userData.checkins.length
+    }
+  }
+  
+  // Calculate streak for new day
   if (userData.lastCheckIn) {
     const lastCheck = new Date(userData.lastCheckIn)
     const hoursDiff = (now.getTime() - lastCheck.getTime()) / (1000 * 60 * 60)
@@ -68,12 +83,13 @@ export async function saveCheckIn(checkIn: CheckIn): Promise<{ streak: number; t
       userData.streak += 1
     }
   } else {
-    // First check-in
+    // First check-in ever
     userData.streak = 1
   }
   
   userData.checkins.push(checkIn)
   userData.lastCheckIn = checkIn.timestamp
+  userData.lastCheckInDate = today
   
   writeDb(db)
   
