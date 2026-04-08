@@ -53,9 +53,16 @@ export default function CheckinPage() {
   useEffect(() => {
     if (address) {
       setIsVerified(isHumanVerified(address))
-      getUserProfile(address).then((p) => {
-        setStreak(Number(p[1])) // streak is at index 1
-      }).catch(() => setStreak(0))
+      // Load streak from off-chain database
+      fetch(`/api/user/stats?address=${address}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.success) {
+            setStreak(data.streak)
+            console.log('[checkin] Loaded streak from DB:', data.streak)
+          }
+        })
+        .catch(() => setStreak(0))
     }
   }, [address])
 

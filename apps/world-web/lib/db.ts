@@ -21,6 +21,7 @@ interface UserData {
   streak: number
   lastCheckIn: string | null
   lastCheckInDate: string | null // YYYY-MM-DD format
+  checkInDates: string[] // Array of unique YYYY-MM-DD dates
 }
 
 function ensureDb() {
@@ -43,14 +44,12 @@ function writeDb(db: Record<string, UserData>) {
   fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2))
 }
 
-const STREAK_WINDOW_HOURS = 36
-
 export async function saveCheckIn(checkIn: CheckIn): Promise<{ streak: number; totalCheckIns: number }> {
   const db = readDb()
   const address = checkIn.walletAddress.toLowerCase()
   
   if (!db[address]) {
-    db[address] = { checkins: [], streak: 0, lastCheckIn: null, lastCheckInDate: null }
+    db[address] = { checkins: [], streak: 0, lastCheckIn: null, lastCheckInDate: null, checkInDates: [] }
   }
   
   const userData = db[address]
@@ -70,23 +69,44 @@ export async function saveCheckIn(checkIn: CheckIn): Promise<{ streak: number; t
     }
   }
   
-  // Calculate streak for new day
-  if (userData.lastCheckIn) {
-    const lastCheck = new Date(userData.lastCheckIn)
-    const hoursDiff = (now.getTime() - lastCheck.getTime()) / (1000 * 60 * 60)
-    
-    if (hoursDiff > STREAK_WINDOW_HOURS) {
-      // Streak broken
-      userData.streak = 1
-    } else {
-      // Continue streak
-      userData.streak += 1
-    }
-  } else {
-    // First check-in ever
-    userData.streak = 1
+  // New day - add to checkInDates
+  if (!userData.checkInDates.includes(today)) {
+    userData.checkInDates.push(today)
   }
   
+  // Calculate streak based on consecutive days in checkInDates
+  const sortedDates = [...userData.checkInDates].sort()
+  let currentStreak = 0
+  
+  for (let i = sortedDates.length - 1; i >= 0; i--) {
+    const date = sortedDates[i]
+    const dateObj = new Date(date)
+    
+    if (i === sortedDates.length - 1) {
+      // Most recent date - check if it's today or yesterday
+      const daysDiff = Math.floor((now.getTime() - dateObj.getTime()) / (1000 * 60 * 60 * 24))
+      if (daysDiff <= 1) {
+        currentStreak = 1
+      } else {
+        // Last check-in was more than 1 day ago, streak is 1 for today
+        currentStreak = 1
+        break
+      }
+    } else {
+      // Check if consecutive with next date
+      const nextDate = sortedDates[i + 1]
+      const nextDateObj = new Date(nextDate)
+      const dayDiff = Math.floor((nextDateObj.getTime() - dateObj.getTime()) / (1000 * 60 * 60 * 24))
+      
+      if (dayDiff === 1) {
+        currentStreak++
+      } else {
+        break
+      }
+    }
+  }
+  
+  userData.streak = Math.max(1, currentStreak)
   userData.checkins.push(checkIn)
   userData.lastCheckIn = checkIn.timestamp
   userData.lastCheckInDate = today

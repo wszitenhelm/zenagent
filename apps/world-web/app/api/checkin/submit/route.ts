@@ -25,7 +25,7 @@ export async function POST(request: Request): Promise<Response> {
     console.log('[checkin-api] Saving check-in for:', walletAddress)
     
     // Save to off-chain database
-    const stats = await saveCheckIn({
+    const checkInData = {
       walletAddress: walletAddress.toLowerCase(),
       mood,
       stress,
@@ -33,7 +33,10 @@ export async function POST(request: Request): Promise<Response> {
       gratitude: gratitude || '',
       journalHash,
       timestamp: new Date().toISOString(),
-    })
+    }
+    console.log('[checkin-api] Check-in data:', checkInData)
+    
+    const stats = await saveCheckIn(checkInData)
     
     console.log('[checkin-api] Check-in saved. Streak:', stats.streak, 'Total:', stats.totalCheckIns)
 
