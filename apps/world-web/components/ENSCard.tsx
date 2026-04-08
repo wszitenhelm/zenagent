@@ -13,6 +13,8 @@ interface ENSCardProps {
 export function ENSCard({ ensName, streak = 0, onUpdateRecords }: ENSCardProps) {
   const [copied, setCopied] = useState(false)
   const level = getLevelFromStreak(streak)
+  
+  console.log('[ENSCard] Rendering with ensName:', ensName, 'type:', typeof ensName)
 
   const copyToClipboard = () => {
     if (ensName) {

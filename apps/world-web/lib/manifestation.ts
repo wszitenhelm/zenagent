@@ -2,21 +2,24 @@ export async function generateManifestation(
   mood: number,
   stress: number,
   journal: string,
-  streak: number
-): Promise<string> {
-  const prompt = `You are a compassionate wellness guide for crypto users. Based on: mood ${mood}/10, stress ${stress}/10, streak ${streak} days, reflection: '${journal}'. Generate ONE powerful manifestation quote max 2 sentences. Reference their crypto journey if stress is high. Be warm not generic.`
-
-  const res = await fetch('/api/0g/manifestation', {
+  sleep: number,
+  streak: number,
+  gratitude?: string
+): Promise<{ manifestation: string; insight: string }> {
+  const res = await fetch('/api/manifestation', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ prompt }),
+    body: JSON.stringify({ mood, stress, sleep, journal, streak, gratitude }),
   }).then((r) => r.json())
 
   if (!res?.success) {
-    throw new Error(res?.error || 'Failed to generate manifestation')
+    throw new Error(res?.error || 'Failed to generate AI insights')
   }
 
-  return res.quote || 'Consistency is your superpower.'
+  return {
+    manifestation: res.manifestation,
+    insight: res.insight
+  }
 }
 
 export async function generateWeeklyLetter(

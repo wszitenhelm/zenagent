@@ -39,6 +39,8 @@ export default function ProfilePage() {
   useEffect(() => {
     if (address) {
       const walletData = getWalletData(address)
+      console.log('[profile] Wallet data loaded:', walletData)
+      console.log('[profile] ENS from wallet:', walletData.ensName, 'type:', typeof walletData.ensName)
       setNullifierHash(walletData.worldIdNullifier)
       setEnsName(walletData.ensName)
       setIsVerified(isHumanVerified(address))

@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { useAccount, useWriteContract } from 'wagmi'
 import { ZENAGENT_REGISTRY_ADDRESS, zenAgentRegistryAbi, getUserProfile } from '@/lib/contract'
-import { generateManifestation } from '@/lib/manifestation'
 import { isHumanVerified } from '@/lib/walletStorage'
 
 function clamp(n: number, min: number, max: number) {
@@ -137,12 +136,20 @@ export default function CheckinPage() {
       
       console.log('[checkin] Check-in saved! Streak:', checkinRes.streak, 'Total:', checkinRes.totalCheckIns)
 
-      // Step 3: Generate manifestation
-      console.log('[checkin] Generating manifestation...')
-      const manifesto = await generateManifestation(mood, stress, journal, streak)
-      setQuote(manifesto)
+      // Step 3: Generate AI manifestation and insight
+      console.log('[checkin] Generating AI insights...')
+      const aiResponse = await fetch('/api/manifestation', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ mood, stress, sleep, journal, gratitude, streak: checkinRes.streak || streak }),
+      }).then(r => r.json())
+      
+      const manifesto = aiResponse.success ? aiResponse.manifestation : 'Keep going on your wellness journey.'
+      const insight = aiResponse.success ? aiResponse.insight : ''
+      
+      setQuote(`${manifesto}${insight ? '\n\n💡 ' + insight : ''}`)
       setError('')
-      console.log('[checkin] Done!')
+      console.log('[checkin] AI insights generated!')
 
       setStep(6)
     } catch (e) {

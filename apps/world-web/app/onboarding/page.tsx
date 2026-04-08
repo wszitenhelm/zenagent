@@ -120,12 +120,20 @@ export default function OnboardingPage() {
       }
 
       // Mint ENS subname
-      console.log('[onboarding] Calling mintSubname...')
+      console.log('[onboarding] Calling mintSubname with username:', username)
       const ensRes = await mintSubname(username, address, {} as any)
       console.log('[onboarding] ENS response:', ensRes)
+      console.log('[onboarding] ENS name type:', typeof ensRes.ensName)
+      console.log('[onboarding] ENS name value:', ensRes.ensName)
+      
+      if (!ensRes.ensName || typeof ensRes.ensName !== 'string') {
+        throw new Error('Invalid ENS name received: ' + JSON.stringify(ensRes.ensName))
+      }
+      
       setEnsName(ensRes.ensName)
       
       // Store in wallet-based storage
+      console.log('[onboarding] Saving to wallet storage:', { ensName: ensRes.ensName, username })
       setWalletData(address, {
         ensName: ensRes.ensName,
         username: username,
