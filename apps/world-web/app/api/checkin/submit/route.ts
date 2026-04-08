@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createWalletClient, http, isAddress, parseAbi } from 'viem'
-import { privateKeyToAccount } from 'viem/accounts'
-import { sepolia } from 'viem/chains'
+import { isAddress } from 'viem'
+import { saveCheckIn } from '@/lib/db'
 
 export async function POST(request: Request): Promise<Response> {
   try {
@@ -11,9 +10,10 @@ export async function POST(request: Request): Promise<Response> {
       stress?: number
       sleep?: number
       gratitude?: string
+      journalHash?: string
     }
 
-    const { walletAddress, mood, stress, sleep, gratitude } = body
+    const { walletAddress, mood, stress, sleep, gratitude, journalHash } = body
 
     if (!walletAddress || !isAddress(walletAddress)) {
       return NextResponse.json({ error: 'Missing/invalid walletAddress' }, { status: 400 })
@@ -22,33 +22,28 @@ export async function POST(request: Request): Promise<Response> {
       return NextResponse.json({ error: 'Missing mood/stress/sleep values' }, { status: 400 })
     }
 
-    const rpcUrl = process.env.SEPOLIA_RPC_URL || 'https://rpc.sepolia.org'
-    const pk = process.env.PRIVATE_KEY
-    const registryAddress = process.env.ZENAGENT_REGISTRY_ADDRESS as `0x${string}` | undefined
-
-    if (!pk) return NextResponse.json({ error: 'Missing PRIVATE_KEY' }, { status: 500 })
-    if (!registryAddress || !isAddress(registryAddress)) {
-      return NextResponse.json({ error: 'Missing/invalid ZENAGENT_REGISTRY_ADDRESS' }, { status: 500 })
-    }
-
-    const account = privateKeyToAccount(pk.startsWith('0x') ? (pk as `0x${string}`) : (`0x${pk}` as `0x${string}`))
-    const client = createWalletClient({
-      account,
-      chain: sepolia,
-      transport: http(rpcUrl),
+    console.log('[checkin-api] Saving check-in for:', walletAddress)
+    
+    // Save to off-chain database
+    const stats = await saveCheckIn({
+      walletAddress: walletAddress.toLowerCase(),
+      mood,
+      stress,
+      sleep,
+      gratitude: gratitude || '',
+      journalHash,
+      timestamp: new Date().toISOString(),
     })
+    
+    console.log('[checkin-api] Check-in saved. Streak:', stats.streak, 'Total:', stats.totalCheckIns)
 
-    const abi = parseAbi(['function logCheckIn(uint8 mood, uint8 stress, uint8 sleep, string gratitude) external'])
-
-    const txHash = await client.writeContract({
-      address: registryAddress,
-      abi,
-      functionName: 'logCheckIn',
-      args: [mood, stress, sleep, gratitude || ''],
+    return NextResponse.json({ 
+      success: true, 
+      streak: stats.streak,
+      totalCheckIns: stats.totalCheckIns 
     })
-
-    return NextResponse.json({ success: true, txHash })
   } catch (err) {
+    console.error('[checkin-api] Error:', err)
     const message = err instanceof Error ? err.message : 'Unknown error'
     return NextResponse.json({ error: message }, { status: 500 })
   }

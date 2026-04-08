@@ -120,16 +120,22 @@ export default function CheckinPage() {
           stress,
           sleep,
           gratitude,
+          journalHash: rootHash,
         }),
       }).then((r) => r.json())
+
+      console.log('[checkin] Check-in response:', checkinRes)
 
       if (!checkinRes?.success) {
         throw new Error(checkinRes?.error || 'Check-in submission failed')
       }
-      console.log('[checkin] Check-in success:', checkinRes.txHash)
-
-      // Demo: hardcoded streak display - in production this comes from contract
-      // setStreak(1)
+      
+      // Update streak from response
+      if (checkinRes.streak) {
+        setStreak(checkinRes.streak)
+      }
+      
+      console.log('[checkin] Check-in saved! Streak:', checkinRes.streak, 'Total:', checkinRes.totalCheckIns)
 
       // Step 3: Generate manifestation
       console.log('[checkin] Generating manifestation...')

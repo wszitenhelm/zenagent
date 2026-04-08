@@ -8,6 +8,11 @@ import { getLevelFromStreak } from '@/lib/ens'
 import { getLocalEntries } from '@/lib/localStorage'
 import { getWalletData, isHumanVerified, getENSName, setWalletData } from '@/lib/walletStorage'
 
+interface UserStats {
+  streak: number
+  totalCheckIns: number
+}
+
 export default function ProfilePage() {
   const { address } = useAccount()
   const [nullifierHash, setNullifierHash] = useState<string | null>(null)
@@ -49,19 +54,34 @@ export default function ProfilePage() {
     setLoading(true)
     try {
       console.log('[profile] Loading data for address:', address)
+      
+      // Load on-chain data (username, ENS, worldID)
       const p = await getUserProfile(address)
-      console.log('[profile] Contract data:', { username: p[0], streak: p[1]?.toString(), totalCheckIns: p[2]?.toString(), worldIDVerified: p[4], ensName: p[5] })
+      console.log('[profile] Contract data:', { username: p[0], worldIDVerified: p[4], ensName: p[5] })
+      
+      // Load off-chain stats (check-ins, streak)
+      const statsRes = await fetch(`/api/user/stats?address=${address}`).then(r => r.json())
+      console.log('[profile] Off-chain stats:', statsRes)
+      
+      const stats: UserStats = statsRes.success ? statsRes : { streak: 0, totalCheckIns: 0 }
+      
       const r = await getReferralCount(address)
       setProfile({
         username: p[0],
-        streak: p[1], // Real value from contract
-        totalCheckIns: p[2], // Real value from contract
+        streak: BigInt(stats.streak), // From off-chain DB
+        totalCheckIns: BigInt(stats.totalCheckIns), // From off-chain DB
         registeredAt: p[3],
         worldIDVerified: p[4],
         ensName: p[5],
       })
-      const b = await getBadges(address)
-      setBadges({ sevenDay: b[0], thirtyDay: b[1], ninetyDay: b[2] }) // Convert tuple to object
+      
+      // Calculate badges from streak
+      const streakNum = stats.streak
+      setBadges({ 
+        sevenDay: streakNum >= 7, 
+        thirtyDay: streakNum >= 30, 
+        ninetyDay: streakNum >= 90 
+      })
       setReferrals(r)
       
       // Sync contract data to wallet storage
