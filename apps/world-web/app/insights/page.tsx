@@ -136,31 +136,31 @@ export default function InsightsPage() {
   // Generate AI letter when data changes
   useEffect(() => {
     const generateAiLetter = async () => {
-      if (!address || entries.length === 0) return
+      if (!address) return
       
       setLoadingAi(true)
       try {
-        // Get latest entry for context
-        const latestEntry = entries[entries.length - 1]
+        // Use latest entry if available, otherwise defaults for new user
+        const latestEntry = entries.length > 0 ? entries[entries.length - 1] : null
         
         const response = await fetch('/api/manifestation', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({
-            mood: latestEntry.mood,
-            stress: latestEntry.stress,
-            sleep: latestEntry.sleep,
+            mood: latestEntry?.mood ?? 7,
+            stress: latestEntry?.stress ?? 5,
+            sleep: latestEntry?.sleep ?? 7,
             streak,
-            journal: latestEntry.note || '',
+            journal: latestEntry?.note || '',
             gratitude: ''
           })
         }).then(r => r.json())
 
         if (response.success) {
           setAiLetter({
-            title: `Your Week ${streak > 0 ? '- Day ${streak}' : ''}`,
+            title: entries.length > 0 ? `Your Week ${streak > 0 ? '- Day ${streak}' : ''}` : 'Welcome to Your Wellness Journey',
             subtitle: response.source === 'groq-llm' ? 'AI-Powered Wellness Reflection' : 'Personalized Wellness Reflection',
-            body: `${response.manifestation}\n\n${response.insight}\n\nYour ZenAgent\nDay ${streak} — ${totalCheckIns} check-ins total`
+            body: `${response.manifestation}\n\n${response.insight}\n\nYour ZenAgent${entries.length > 0 ? `\nDay ${streak} — ${totalCheckIns} check-ins total` : '\nYour journey begins'}`
           })
         }
       } catch (e) {
