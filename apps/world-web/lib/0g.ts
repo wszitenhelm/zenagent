@@ -88,16 +88,18 @@ export async function uploadWellnessData(
     throw new Error('Upload did not return rootHash')
   }
 
-  // Store entry in localStorage (mood/stress unencrypted for charts)
-  const entries = JSON.parse(localStorage.getItem('zg_entries') || '[]')
-  entries.push({
-    date: data.date,
-    txHash: rootHash,
-    mood: data.mood,
-    stress: data.stress,
-    sleep: data.sleep,
-  })
-  localStorage.setItem('zg_entries', JSON.stringify(entries))
+  // Store entry in localStorage (mood/stress unencrypted for charts) - only on client
+  if (typeof window !== 'undefined') {
+    const entries = JSON.parse(localStorage.getItem('zg_entries') || '[]')
+    entries.push({
+      date: data.date,
+      txHash: rootHash,
+      mood: data.mood,
+      stress: data.stress,
+      sleep: data.sleep,
+    })
+    localStorage.setItem('zg_entries', JSON.stringify(entries))
+  }
 
   return rootHash as string
 }
