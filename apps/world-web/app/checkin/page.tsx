@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { useAccount, useWriteContract } from 'wagmi'
 import { ZENAGENT_REGISTRY_ADDRESS, zenAgentRegistryAbi, getUserProfile } from '@/lib/contract'
 import { isHumanVerified } from '@/lib/walletStorage'
+import { saveLocalEntry } from '@/lib/localStorage'
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n))
@@ -135,6 +136,15 @@ export default function CheckinPage() {
       if (!checkinRes?.success) {
         throw new Error(checkinRes?.error || 'Check-in submission failed')
       }
+      
+      // Save to localStorage for insights page
+      saveLocalEntry({
+        mood,
+        stress,
+        sleep,
+        date: new Date().toISOString().split('T')[0],
+        note: journal
+      })
       
       // Update streak from response
       if (checkinRes.streak) {
