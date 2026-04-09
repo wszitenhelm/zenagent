@@ -3,10 +3,11 @@
 
 export interface LocalEntry {
   date: string
-  txHash: string
+  txHash?: string
   mood: number
   stress: number
   sleep: number
+  note?: string
 }
 
 export function getLocalEntries(): LocalEntry[] {
