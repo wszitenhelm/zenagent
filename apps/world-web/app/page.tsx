@@ -32,18 +32,25 @@ export default function Home() {
   }, [address])
 
   const handleStart = async () => {
-    // Check if any connector is actually ready (wallet installed)
-    const readyConnector = connectors.find(c => c.ready)
+    // Check if ethereum provider exists (MetaMask or other wallet)
+    const hasEthereum = typeof window !== 'undefined' && !!(window as any).ethereum
     
-    if (!readyConnector) {
+    if (!hasEthereum) {
       // No wallet detected - show install options
       console.log('[page] No wallet detected, opening download page')
       window.open('https://metamask.io/download/', '_blank')
       return
     }
     
+    // Try to connect with first available connector
+    const connector = connectors[0]
+    if (!connector) {
+      window.open('https://metamask.io/download/', '_blank')
+      return
+    }
+    
     try {
-      await connect({ connector: readyConnector })
+      await connect({ connector })
     } catch (e) {
       console.error('Connection failed:', e)
     }
