@@ -32,15 +32,20 @@ export default function Home() {
   }, [address])
 
   const handleStart = async () => {
-    if (connectors.length === 0) {
-      alert('Please install MetaMask or another wallet')
+    // Check if any connector is actually ready (wallet installed)
+    const readyConnector = connectors.find(c => c.ready)
+    
+    if (!readyConnector) {
+      // No wallet detected - show install options
+      console.log('[page] No wallet detected, opening download page')
+      window.open('https://metamask.io/download/', '_blank')
       return
     }
+    
     try {
-      await connect({ connector: connectors[0] })
+      await connect({ connector: readyConnector })
     } catch (e) {
       console.error('Connection failed:', e)
-      alert('Could not connect wallet. Is it unlocked?')
     }
   }
 
